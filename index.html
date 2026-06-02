@@ -4,8 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Switchroom Build Flow</title>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
-<style>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js" defer></script>
+  <style>
   :root{--navy:#1a237e;--blue:#1565C0;--teal:#00838F;--green:#2E7D32;--orange:#EF6C00;--red:#c62828;--purple:#6A1B9A;--grey:#607D8B;--hl:#FF6F00;}
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
   body{background:#F5F5F5;min-height:100vh}
@@ -233,11 +233,13 @@ async function onSignedIn(account){
   renderLegend();
 }
 
-// Handle page load
-msal_.handleRedirectPromise().then(res=>{
-  if(res) onSignedIn(res.account);
-  else{ const a=msal_.getAllAccounts(); if(a.length) onSignedIn(a[0]); }
-}).catch(console.error);
+// Handle page load — wait for DOM + MSAL to be fully ready
+window.addEventListener("load", ()=>{
+  msal_.handleRedirectPromise().then(res=>{
+    if(res) onSignedIn(res.account);
+    else{ const a=msal_.getAllAccounts(); if(a.length) onSignedIn(a[0]); }
+  }).catch(console.error);
+});
 
 // ══════════════════════════════════════
 //  SHAREPOINT REST API (no Graph, no admin)
