@@ -5,126 +5,157 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>RJE Build Flow</title>
 <style>
-  :root{--navy:#1a237e;--blue:#1565C0;--teal:#00838F;--green:#2E7D32;--red:#c62828;--hl:#FF6F00;}
-  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
-  body{background:#F5F5F5;min-height:100vh}
-  #header{background:var(--navy);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
-  .sub{font-size:10px;opacity:.85;margin-top:2px}
-  .hbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .hbtn{padding:5px 13px;border-radius:20px;border:1px solid rgba(255,255,255,.5);cursor:pointer;font-size:11px;font-weight:700;background:transparent;color:#fff}
-  .hbtn.solid{background:#fff;color:var(--navy);border-color:#fff}
-  select.hsel{padding:5px 10px;border-radius:8px;border:none;font-size:11px;font-weight:700;background:#fff;color:var(--navy)}
-  #toolbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:6px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .tbtn{padding:5px 12px;border-radius:8px;border:1px solid #ddd;cursor:pointer;font-size:11px;font-weight:600;background:#fff}
-  .tbtn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
-  .tbtn.danger{background:#FFEBEE;color:var(--red);border-color:#ef9a9a}
-  .tbtn.success{background:#E8F5E9;color:var(--green);border-color:#a5d6a7}
-  #projectSel{padding:5px 10px;border-radius:8px;border:1px solid #ddd;font-size:11px;font-weight:600}
-  #legend{display:flex;gap:8px;padding:5px 12px;background:#fff;flex-wrap:wrap;border-bottom:1px solid #e0e0e0;font-size:10px}
-
-  /* ── WORKSPACE: side track (left) + connector + main flow (center) ── */
-  #workspace{display:flex;align-items:flex-start;justify-content:center;gap:0;padding:18px 14px}
-  #sideWrap{display:flex;flex-direction:column;align-items:center;flex-shrink:0;background:#FAFBFF;border:2px dashed var(--teal);border-radius:14px;padding:10px 12px;margin-top:30px}
-  #sideTitle{font-size:11px;font-weight:700;color:var(--teal);text-align:center;margin-bottom:8px;max-width:200px}
-  #sideFlow{display:flex;flex-direction:column;align-items:center}
-  #connector{display:flex;flex-direction:column;align-items:center;justify-content:center;align-self:center;padding:0 6px;flex-shrink:0;min-height:120px}
-  #connector .arrowline{height:2px;background:var(--teal);width:46px}
-  #connector .arrowhead{color:var(--teal);font-size:18px;margin-left:-4px}
-  #connector .clabel{font-size:9px;color:var(--teal);font-weight:700;text-align:center;margin-bottom:4px;max-width:90px}
-  #mainWrap{display:flex;flex-direction:column;align-items:center}
-
-  .card{border-radius:9px;padding:8px 10px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.1);position:relative;width:210px;min-width:210px;flex-shrink:0}
-  .card.side{width:185px;min-width:185px}
-  .card-title{font-weight:700;font-size:11px;line-height:1.3}
-  .card-meta{font-size:9px;color:#555;display:flex;gap:5px;flex-wrap:wrap;border-top:1px solid #f0f0f0;padding-top:3px;margin-top:3px}
-  .pill{background:#f5f5f5;border-radius:3px;padding:1px 4px}
-  .card-info{font-size:8px;color:#777;margin-top:3px;line-height:1.4}
-  .card-note{font-size:8px;margin-top:3px;background:#FFFDE7;border:1px solid #F9A825;border-radius:4px;padding:3px 5px;color:#795548}
-  .card-nv{font-size:8px;color:var(--red);margin-top:2px;font-weight:700}
-  .card-btns{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap;align-items:center}
-  .mini{padding:2px 7px;font-size:10px;border-radius:7px;border:none;cursor:pointer;font-weight:700}
-  .par-block{border-radius:12px;padding:10px 10px 6px;position:relative}
-  .par-label{position:absolute;top:-10px;left:14px;background:#fff;border-radius:10px;padding:1px 9px;font-size:9px;font-weight:700}
-  .par-lanes{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
-  .lane-col{display:flex;flex-direction:column;align-items:center}
-  .lane-hdr{font-size:8px;font-weight:700;color:#546E7A;background:#ECEFF1;border-radius:8px;padding:1px 8px;margin-bottom:4px}
-  .varrow{display:flex;flex-direction:column;align-items:center;margin:1px 0;flex-shrink:0}
-  .varrow-line{width:2px;height:14px;background:#90A4AE}
-  .varrow-head{font-size:12px;color:#607D8B;line-height:1}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
-  .modal{background:#fff;border-radius:14px;padding:24px;max-height:92vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.35);width:460px;max-width:96vw}
-  .modal-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-  .field{margin-bottom:9px}
-  .field label{font-size:11px;color:#555;display:block;margin-bottom:3px;font-weight:600}
-  .field input,.field textarea{width:100%;border-radius:7px;border:1px solid #ccc;padding:6px 9px;font-size:12px;font-family:inherit}
-  .field textarea{resize:vertical}
-  .xbtn{border:none;background:#eee;border-radius:8px;padding:4px 11px;cursor:pointer;font-size:13px;font-weight:700}
-  .seq-box{background:#F3F6FF;border-radius:8px;padding:9px 11px;margin:8px 0}
-  .seq-title{font-size:11px;font-weight:700;color:#3949AB;margin-bottom:6px}
-  .chk-row{display:flex;gap:14px;margin:6px 0 10px}
-  .chk-label{font-size:11px;color:#444;display:flex;align-items:center;gap:5px;cursor:pointer}
-  .sym{font-size:17px;cursor:pointer;padding:2px 6px;border-radius:6px;border:2px solid transparent}
-  .sym.active{background:#e3f2fd;border-color:#1565C0}
-  .col-swatch{width:25px;height:25px;border-radius:6px;cursor:pointer;border:2px solid #ddd}
-  .col-swatch.active{border:3px solid #000}
-  .modal-actions{display:flex;gap:8px;justify-content:space-between;margin-top:14px}
-  .stat-grid{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-  .stat{border-radius:9px;padding:8px 14px;flex:1 1 130px;min-width:110px}
-  .gantt-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
-  .gantt-label{font-size:9px;color:#555;min-width:200px;max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex-shrink:0}
-  .gantt-bg{position:relative;height:15px;flex:1;background:#f0f0f0;border-radius:4px;min-width:80px}
-  .gantt-bar{position:absolute;height:100%;border-radius:4px;opacity:.85;min-width:4px}
-  .hist-item{border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px;margin-bottom:6px;cursor:pointer}
-  .hist-item:hover{background:#f5f5f5}
-  #toast{position:fixed;bottom:20px;right:20px;background:#323232;color:#fff;padding:10px 18px;border-radius:10px;font-size:12px;z-index:9999;display:none;box-shadow:0 4px 12px rgba(0,0,0,.3)}
-  #toast.show{display:block}
-  #setupBanner{background:#FFF8E1;border-bottom:1px solid #FFE082;padding:8px 14px;font-size:11px;color:#6D4C41;display:none}
-  @media print{#header,#toolbar,#legend,.card-btns,#setupBanner,#sideAddRow{display:none!important}body{background:#fff}}
+:root{--navy:#1a237e;--blue:#1565C0;--teal:#00838F;--green:#2E7D32;--red:#c62828;--hl:#FF6F00;--bg:#F0F2F8;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+body{background:var(--bg);min-height:100vh;font-size:13px}
+#header{background:var(--navy);color:#fff;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.logo{font-size:15px;font-weight:700}
+.sub{font-size:10px;opacity:.8;margin-top:1px}
+.hbtns{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.hbtn{padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.5);cursor:pointer;font-size:11px;font-weight:700;background:transparent;color:#fff;transition:all .15s}
+.hbtn:hover{background:rgba(255,255,255,.15)}
+.hbtn.solid{background:#fff;color:var(--navy);border-color:#fff}
+.hbtn.solid:hover{background:#e8eaf6}
+.hbtn.sim{background:#FF6F00;border-color:#FF6F00}
+.hbtn.sim:hover{background:#E65100}
+.hbtn.del{background:#c62828;border-color:#c62828}
+.hbtn.del:hover{background:#b71c1c}
+select.hsel{padding:4px 9px;border-radius:8px;border:none;font-size:11px;font-weight:700;background:#fff;color:var(--navy);cursor:pointer}
+#saveStatus{font-size:10px;opacity:.8;white-space:nowrap;max-width:200px}
+#setupBanner{background:#FFF3E0;border-bottom:2px solid #FF6F00;padding:9px 14px;font-size:11px;color:#5D4037;display:none;align-items:center;gap:8px}
+#setupBanner b{color:#BF360C}
+#toolbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:6px 14px;display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.tbtn{padding:4px 12px;border-radius:8px;border:1px solid #ddd;cursor:pointer;font-size:11px;font-weight:600;background:#fff;transition:all .15s}
+.tbtn:hover{background:#f5f5f5}
+.tbtn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.tbtn.danger{background:#FFEBEE;color:var(--red);border-color:#ef9a9a}
+.tbtn.warn{background:#FFF8E1;color:#E65100;border-color:#FFE082}
+.tbtn.sim{background:#FF6F00;color:#fff;border-color:#FF6F00}
+#legend{display:flex;gap:7px;padding:4px 14px;background:#fff;flex-wrap:wrap;border-bottom:1px solid #e0e0e0;font-size:10px;align-items:center}
+.leg-item{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+#workspace{display:flex;align-items:flex-start;justify-content:center;gap:0;padding:18px 14px;min-height:calc(100vh - 155px)}
+#sideWrap{display:flex;flex-direction:column;align-items:center;flex-shrink:0;background:#FAFBFF;border:2px dashed var(--teal);border-radius:14px;padding:10px;min-width:196px;max-width:210px;margin-top:8px}
+#sideTitle{font-size:11px;font-weight:700;color:var(--teal);text-align:center;margin-bottom:8px;line-height:1.3;white-space:pre-line}
+#sideFlow{display:flex;flex-direction:column;align-items:center;width:100%}
+#connector{display:flex;flex-direction:column;align-items:center;justify-content:center;align-self:center;padding:0 8px;flex-shrink:0;min-height:80px}
+.conn-label{font-size:9px;color:var(--teal);font-weight:700;text-align:center;margin-bottom:4px;max-width:76px;line-height:1.3}
+.conn-arrow{display:flex;align-items:center}
+.conn-line{height:2px;background:var(--teal);width:36px}
+.conn-head{color:var(--teal);font-size:15px;margin-left:-3px;line-height:1}
+#mainWrap{display:flex;flex-direction:column;align-items:center}
+#mainFlow{display:flex;flex-direction:column;align-items:center}
+.card{border-radius:10px;padding:8px 10px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.1);position:relative;width:218px;min-width:218px;flex-shrink:0;transition:box-shadow .15s}
+.card:hover{box-shadow:0 3px 10px rgba(0,0,0,.15)}
+.card.side{width:186px;min-width:186px}
+.card-head{display:flex;align-items:flex-start;gap:5px;margin-bottom:3px}
+.card-icon{font-size:17px;line-height:1;flex-shrink:0}
+.card-title{font-weight:700;font-size:11px;line-height:1.3}
+.card-meta{font-size:9px;color:#666;display:flex;gap:4px;flex-wrap:wrap;border-top:1px solid #f0f0f0;padding-top:3px;margin-top:3px}
+.pill{background:#f0f2ff;border-radius:3px;padding:1px 4px;font-weight:600}
+.card-info{font-size:9px;color:#555;margin-top:3px;line-height:1.4;font-style:italic}
+.card-note{font-size:9px;margin-top:3px;background:#FFFDE7;border:1px solid #F9A825;border-radius:5px;padding:3px 5px;color:#5D4037;line-height:1.4}
+.card-nv{font-size:9px;color:var(--red);margin-top:2px;font-weight:700}
+.card-merge{font-size:9px;color:var(--teal);margin-top:2px;font-weight:700}
+.card-btns{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.mini{padding:2px 7px;font-size:10px;border-radius:7px;border:none;cursor:pointer;font-weight:700;transition:opacity .1s}
+.mini:hover{opacity:.8}
+.par-block{border-radius:13px;padding:13px 10px 9px;position:relative;width:fit-content;max-width:700px}
+.par-label{position:absolute;top:-10px;left:14px;background:#fff;border-radius:10px;padding:1px 9px;font-size:9px;font-weight:700;border:1px solid #ddd;white-space:nowrap}
+.par-lanes{display:flex;gap:12px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.lane-col{display:flex;flex-direction:column;align-items:center}
+.lane-hdr{font-size:9px;font-weight:700;color:#455A64;background:#ECEFF1;border-radius:8px;padding:2px 9px;margin-bottom:5px;white-space:nowrap}
+.varrow{display:flex;flex-direction:column;align-items:center;margin:2px 0;flex-shrink:0}
+.varrow-line{width:2px;height:14px;background:#90A4AE}
+.varrow-head{font-size:12px;color:#607D8B;line-height:1}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:14px;overflow-y:auto}
+.modal{background:#fff;border-radius:14px;padding:22px;max-height:92vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.35);width:470px;max-width:96vw}
+.modal-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.modal-row h3{font-size:14px;color:var(--navy)}
+.field{margin-bottom:8px}
+.field label{font-size:11px;color:#555;display:block;margin-bottom:2px;font-weight:600}
+.field input,.field textarea,.field select{width:100%;border-radius:7px;border:1px solid #ccc;padding:5px 8px;font-size:12px;font-family:inherit}
+.field textarea{resize:vertical}
+.xbtn{border:none;background:#eee;border-radius:8px;padding:3px 11px;cursor:pointer;font-size:13px;font-weight:700}
+.xbtn:hover{background:#ddd}
+.seq-box{background:#F3F6FF;border-radius:8px;padding:9px 11px;margin:8px 0}
+.seq-title{font-size:11px;font-weight:700;color:#3949AB;margin-bottom:6px}
+.chk-row{display:flex;gap:12px;margin:7px 0 9px;flex-wrap:wrap}
+.chk-label{font-size:11px;color:#444;display:flex;align-items:center;gap:5px;cursor:pointer}
+.sym{font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;border:2px solid transparent}
+.sym.active{background:#e3f2fd;border-color:var(--blue)}
+.col-swatch{width:24px;height:24px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:transform .1s}
+.col-swatch:hover{transform:scale(1.15)}
+.col-swatch.active{border:3px solid #000;transform:scale(1.1)}
+.modal-actions{display:flex;gap:8px;justify-content:space-between;margin-top:14px}
+.stat-grid{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+.stat{border-radius:9px;padding:9px 12px;flex:1 1 110px;min-width:90px}
+.stat-lbl{font-size:9px;font-weight:700;margin-bottom:3px}
+.stat-val{font-size:19px;font-weight:700}
+.gantt-row{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.gantt-label{font-size:9px;color:#555;min-width:190px;max-width:190px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex-shrink:0}
+.gantt-bg{position:relative;height:15px;flex:1;background:#f0f0f0;border-radius:4px;min-width:70px}
+.gantt-bar{position:absolute;height:100%;border-radius:4px;opacity:.85;min-width:3px}
+.hist-item{border:1px solid #e0e0e0;border-radius:8px;padding:7px 11px;margin-bottom:5px;cursor:pointer;transition:background .1s}
+.hist-item:hover{background:#f5f5f5}
+.alert-box{border-radius:9px;padding:9px 11px;margin-bottom:11px;font-size:11px;line-height:1.5}
+#toast{position:fixed;bottom:18px;right:18px;background:#323232;color:#fff;padding:9px 16px;border-radius:10px;font-size:12px;z-index:9999;display:none;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:350px}
+#toast.show{display:block}
+@media print{#header,#toolbar,#legend,.card-btns,#setupBanner,#sideAddRow,#toast{display:none!important}body{background:#fff}.card{box-shadow:none;border:1px solid #ccc!important}}
 </style>
 </head>
 <body>
-
 <div id="toast"></div>
 
 <div id="header">
   <div>
-    <div>🏭 RJE Build Flow</div>
+    <div class="logo">🏭 RJE Build Flow</div>
     <div class="sub" id="headerSub">Loading…</div>
   </div>
   <div class="hbtns">
-    <select class="hsel" id="templateSel" onchange="switchTemplate()" title="Layout / project type"></select>
-    <select id="projectSel" onchange="switchProject()" title="Project within this layout"></select>
-    <button class="hbtn" onclick="newProject()">＋ Project</button>
+    <select class="hsel" id="templateSel" onchange="switchTemplate()" title="Building / Product type"></select>
+    <select class="hsel" id="projectSel" onchange="switchProject()" title="Scenario / Project"></select>
+    <button class="hbtn" onclick="newProject()">＋ Scenario</button>
+    <button class="hbtn del" onclick="deleteProject()" title="Delete current scenario (Default is protected)">🗑 Delete</button>
     <button class="hbtn solid" onclick="saveFlow()">💾 Save</button>
-    <button class="hbtn" onclick="openSim()">🧮 Simulate</button>
+    <button class="hbtn sim" onclick="openSim()">🧮 Simulate</button>
     <button class="hbtn" onclick="openHistory()">📜 History</button>
+    <button class="hbtn" onclick="exportJSON()">⬇ Export</button>
+    <button class="hbtn" onclick="importJSON()">⬆ Import</button>
     <button class="hbtn" onclick="window.print()">🖨️ Print</button>
-    <span id="saveStatus" style="font-size:10px;opacity:.85"></span>
+    <span id="saveStatus"></span>
   </div>
 </div>
 
-<div id="setupBanner"></div>
+<div id="setupBanner">
+  ⚠️ <span><b>Cloud save not connected.</b> Open this file in a text editor. Find the CONFIG block near the top of the &lt;script&gt; section. Replace <b>6a1e4474f5f4af5e29aaf7fe</b> and <b>$2a$10$.dblAr6VfLU7K29kwql.Muf7krC36l0v6jIrHNFGiGRA/0N0V5QQO 
+
+</b> with your JSONBin credentials. Scenarios and edits are <b>session-only</b> until you do this.</span>
+</div>
 
 <div id="toolbar">
-  <button class="tbtn primary" onclick="addStep('main',null)">＋ Add Main Step</button>
+  <button class="tbtn primary" onclick="addStep('main',null)">＋ Add Step</button>
   <button class="tbtn" onclick="addStep('side',null)">＋ Add Side Step</button>
-  <button class="tbtn success" onclick="saveFlow()">💾 Save (shared)</button>
-  <button class="tbtn" onclick="openSim()">🧮 Simulate</button>
+  <button class="tbtn solid" onclick="saveFlow()">💾 Save</button>
+  <button class="tbtn sim" onclick="openSim()">🧮 Simulate</button>
   <button class="tbtn" onclick="openHistory()">📜 History</button>
-  <button class="tbtn danger" onclick="confirmReset()">↺ Reset Layout to Default</button>
-  <span id="saveStatus2" style="font-size:10px;color:#888"></span>
+  <button class="tbtn danger" onclick="confirmReset()">↺ Reset to Default</button>
+  <span id="saveStatus2" style="font-size:10px;color:#888;margin-left:4px"></span>
 </div>
+
 <div id="legend"></div>
 
 <div id="workspace">
   <div id="sideWrap">
-    <div id="sideTitle"></div>
+    <div id="sideTitle">Side Track</div>
     <div id="sideFlow"></div>
-    <div id="sideAddRow" style="margin-top:8px"><button class="tbtn" onclick="addStep('side',null)">＋ Add Side Step</button></div>
+    <div id="sideAddRow" style="margin-top:7px">
+      <button class="tbtn" style="font-size:10px;padding:3px 10px" onclick="addStep('side',null)">＋ Add Side Step</button>
+    </div>
   </div>
   <div id="connector">
-    <div class="clabel" id="connLabel">links to →</div>
-    <div style="display:flex;align-items:center"><div class="arrowline"></div><div class="arrowhead">▶</div></div>
+    <div class="conn-label" id="connLabel">feeds into →</div>
+    <div class="conn-arrow"><div class="conn-line"></div><div class="conn-head">▶</div></div>
   </div>
   <div id="mainWrap"><div id="mainFlow"></div></div>
 </div>
@@ -132,143 +163,399 @@
 <div id="modalRoot"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-//  CONFIG — shared cloud storage (JSONBin.io). Paste your values:
-// ═══════════════════════════════════════════════════════
-const BIN_ID  = "6a1e4474f5f4af5e29aaf7fe";
-const API_KEY = "$2a$10$Bsst/V64yhHJa412vwTW4eOWUXGe09ITgGZlP2dRC6pMqyvep3lMS";
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CONFIG — JSONBin cloud storage                              ║
+// ║  1. Go to https://jsonbin.io  (free account)                 ║
+// ║  2. Create a new Bin (start with {} as content)              ║
+// ║  3. Copy your Bin ID and X-Master-Key below                  ║
+// ║  ⚠️  Keep these private — do NOT commit to a public repo      ║
+// ╚══════════════════════════════════════════════════════════════╝
+const BIN_ID  = "PASTE_YOUR_BIN_ID_HERE";
+const API_KEY = "PASTE_YOUR_X_MASTER_KEY_HERE";
 
-const API = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+const API     = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 const HEADERS = {"Content-Type":"application/json","X-Master-Key":API_KEY,"X-Bin-Meta":"false"};
 
-// ═══════════════════════════════════════════════════════
-//  COLOURS & SYMBOLS
-// ═══════════════════════════════════════════════════════
+// ── COLOURS ──────────────────────────────────────────────────────
 const C={pm:"#4E342E",steel:"#78909C",baseframe:"#5C6BC0",wall:"#26A69A",roof:"#EF6C00",
   paint:"#AB47BC",pad:"#e53935",construction:"#1565C0",electrical:"#2E7D32",
   qa:"#6A1B9A",switchboard:"#00838F",neutral:"#607D8B",mech:"#00897B",fuel:"#F4511E"};
-const HL="#FF6F00";
 const CL=Object.entries(C);
 const SYMS=["","⚠️","🔴","✅","🔶","📌","❗","💡","🚧","⏳","🔒","🔥"];
-let UID=1000; const nid=()=>"s"+(++UID);
+let UID=3000;
+const nid=()=>"s"+(++UID);
 function S(o){return{id:nid(),icon:"⚙️",color:C.neutral,label:"New Step",dept:"",time:1,people:"",info:"",note:"",symbol:"",group:"",lane:"",handback:false,nonValue:false,panelMerge:false,...o};}
 
-// ═══════════════════════════════════════════════════════
-//  TEMPLATES — 4 layouts, each: main flow + side (panel) flow
-//  mergeLabel = where the side track feeds into the main flow
-// ═══════════════════════════════════════════════════════
-const TEMPLATES = {
-  switchroom:{ label:"🏭 Switchroom", sideTitle:"🔲 PANEL SHOP / Switchboard Manufacturing", mergeLabel:"feeds into Panel Installation →", main:swMain, side:swSide },
-  om:        { label:"🛠️ O&M",        sideTitle:"📦 Spares & Parts Procurement",            mergeLabel:"feeds into Component Replacement →", main:omMain, side:omSide },
-  apu:       { label:"⚡ APU",          sideTitle:"🎛️ Control Panel Build",                  mergeLabel:"feeds into Controls Integration →", main:apuMain, side:apuSide },
-  kiosk:     { label:"🛖 Kiosk",        sideTitle:"🔌 Switchgear Procurement",                mergeLabel:"feeds into Equipment Install →", main:kioskMain, side:kioskSide },
+// ════════════════════════════════════════════════════════════════
+//  TEMPLATES
+// ════════════════════════════════════════════════════════════════
+const TEMPLATES={
+  switchroom:{label:"🏭 Switchroom",        sideTitle:"🔲 PANEL SHOP\nSwitchboard Mfg", mergeLabel:"Panels → Panel Install", main:swMain,    side:swSide},
+  kiosk:     {label:"🛖 Kiosk",             sideTitle:"📐 PANEL SHOP\nKiosk Panels",    mergeLabel:"Panels → Panel Install",  main:kioskMain, side:kioskSide},
+  om:        {label:"🏗️ O&M Building",      sideTitle:"📦 Panel Shop\n& Spares",        mergeLabel:"Panels → Equipment Install",main:omMain,   side:omSide},
+  apu:       {label:"⚡ APU (12×3.2m)",     sideTitle:"🎛️ Panel Shop\nAPU Panels",      mergeLabel:"Panels → Controls Install",main:apuMain,  side:apuSide},
+  panelshop: {label:"🔲 Panel Shop",        sideTitle:"📋 Job Documentation\n& Drawings",mergeLabel:"Drawings → Panel Build", main:psMain,    side:psSide},
 };
 
-// ── SWITCHROOM ──
+// ════════════════════════════════════════════════════════════════
+//  SWITCHROOM  (reference baseline)
+// ════════════════════════════════════════════════════════════════
 function swMain(){return[
-  S({icon:"📋",color:C.pm,label:"Procurement & Long-Lead Orders",dept:"PM / Procurement",time:5,people:"1 PM",info:"Order relays, switchgear, busbars early."}),
+  S({icon:"📋",color:C.pm,label:"Procurement & Long-Lead Orders",dept:"PM / Procurement",time:5,people:"1 PM",
+     info:"Order: HV Switchgear, Transformer, RMUs, Generators, SEL Relays, UPS (Eltek). Start before fabrication."}),
   S({icon:"🔩",color:C.steel,label:"Steel Procurement & Cutting",dept:"Steel",time:5,people:"Steel Team"}),
-  S({icon:"🏗️",color:C.baseframe,label:"Baseframe Build",dept:"Baseframe",time:7,people:"BF Team",group:"PREFAB",lane:"Baseframe"}),
-  S({icon:"🎨",color:C.paint,label:"Baseframe — Paint Shop",dept:"Paint",time:3,people:"Paint Crew",group:"PREFAB",lane:"Baseframe"}),
-  S({icon:"🏠",color:C.roof,label:"Roof Frame Build",dept:"Roof Frame",time:10,people:"2 Workers",group:"PREFAB",lane:"Roof+Spray"}),
-  S({icon:"💨",color:C.wall,label:"GRC Spray — Walls & Roof",dept:"Spray",time:4,people:"2 Crews",group:"PREFAB",lane:"Roof+Spray"}),
-  S({icon:"🧱",color:C.wall,label:"Wall Frame Build",dept:"Wall Frame",time:5,people:"3 Crews",group:"PREFAB",lane:"Wall"}),
-  S({icon:"🚚",color:C.pad,label:"Transport to Pad",dept:"Logistics",time:1,people:"2 Labour"}),
-  S({icon:"🔥",color:"#ef5350",label:"Weld BF Sections at Pad",dept:"Welding",time:7,people:"1 Welder",nonValue:true,note:"Non-added value: consider dedicated welder.",symbol:"🔴"}),
-  S({icon:"🏗️",color:C.construction,label:"Building Erected",dept:"Construction",time:5,people:"4 Labour"}),
-  S({icon:"⚡",color:C.electrical,label:"Building Services 1st Fix",dept:"Electrical",time:3,people:"4 Elec",group:"PAD-B",lane:"Elec"}),
-  S({icon:"❄️",color:C.electrical,label:"AC Pipe Install",dept:"AC Tech",time:5,people:"1 AC Tech",group:"PAD-B",lane:"AC"}),
-  S({icon:"🏠",color:C.construction,label:"Insulation, Ceiling & Wall Sheets",dept:"Construction",time:10,people:"4 Labour"}),
-  S({icon:"🟫",color:C.construction,label:"Floor Tiles & Sealing",dept:"Construction",time:4,people:"4 Labour"}),
-  S({icon:"⚡",color:C.electrical,label:"Building Services 2nd Fix",dept:"Electrical",time:5,people:"4 Elec"}),
-  S({icon:"⚡",color:C.electrical,label:"HV Installation",dept:"Electrical",time:6,people:"4 Elec",group:"PANELS",lane:"HV",panelMerge:true}),
-  S({icon:"🔲",color:C.electrical,label:"Protection Panel Installation",dept:"Electrical",time:6,people:"4 Elec",group:"PANELS",lane:"Protection"}),
-  S({icon:"🗄️",color:C.electrical,label:"MSB Installation",dept:"Electrical",time:5,people:"4 Elec",group:"PANELS",lane:"MSB"}),
-  S({icon:"🔌",color:C.electrical,label:"Cables Pulled & Terminated",dept:"Electrical",time:11,people:"8 Elec"}),
-  S({icon:"✅",color:C.qa,label:"Point-to-Point Testing & Greenline",dept:"Elec / QA",time:7,people:"4"}),
-  S({icon:"🎉",color:C.pm,label:"Commissioning & Final Handover",dept:"PM / Commissioning",time:3,people:"4"}),
+  // PREFAB parallel: Baseframe/Paint lane | Roof+Wall frames lane
+  S({icon:"🏗️",color:C.baseframe,label:"Baseframe Fabrication",dept:"Baseframe Crew",time:7,people:"BF Crew",
+     group:"PREFAB",lane:"Baseframe / Paint",note:"BF connects directly to storage at Pad by section."}),
+  S({icon:"🎨",color:C.paint,label:"Baseframe — Paint Shop",dept:"Paint",time:3,people:"Paint Crew",
+     group:"PREFAB",lane:"Baseframe / Paint",info:"Painted sections stored at Pad ready for erection."}),
+  S({icon:"🏠",color:C.roof,label:"Roof Frame Fabrication",dept:"Roof Framing Crew",time:10,people:"2 Workers",
+     group:"PREFAB",lane:"Roof + Wall Frames",note:"Deliver one panel per day to GRC Mould Bed."}),
+  S({icon:"🧱",color:C.wall,label:"Wall Frame Fabrication",dept:"Wall Framing Crew",time:5,people:"3 Crews",
+     group:"PREFAB",lane:"Roof + Wall Frames",note:"Deliver one panel per day to GRC Mould Bed."}),
+  // GRC chain (sequential, feeds from Wall/Roof frames)
+  S({icon:"🛠️",color:C.wall,label:"GRC Mould Bed Setup",dept:"GRC",time:2,people:"GRC Crew",
+     info:"Wall & Roof frames delivered one panel per day."}),
+  S({icon:"💨",color:C.wall,label:"GRC Concrete Spray — Walls & Roof",dept:"GRC Spray",time:4,people:"2 Crews"}),
+  S({icon:"📦",color:C.wall,label:"GRC Demould & Cure",dept:"GRC",time:3,people:"GRC Crew"}),
+  S({icon:"🚚",color:C.pad,label:"Transport to Pad Store",dept:"Logistics",time:1,people:"2 Labour",
+     info:"BF sections + GRC panels delivered to Pad."}),
+  S({icon:"🔥",color:"#ef5350",label:"Weld BF Sections at Pad",dept:"Welding",time:7,people:"1 Welder",
+     nonValue:true,symbol:"🔴",note:"Non-added value — consider welding at shop before transport."}),
+  S({icon:"🏗️",color:C.construction,label:"Building / Switchroom Erection",dept:"Construction",time:4,people:"Construction Crew + FRANNA"}),
+  S({icon:"🔧",color:C.construction,label:"Cable Tray Fitout",dept:"Construction",time:2,people:"Construction Crew"}),
+  S({icon:"⚡",color:C.electrical,label:"Sub-Floor Cable Install",dept:"Electrical Crew",time:2,people:"Elec Crew"}),
+  S({icon:"🏠",color:C.construction,label:"External Paint & Caulking",dept:"Paint Crew",time:3,people:"Paint Crew"}),
+  S({icon:"🟫",color:C.construction,label:"CFC Flooring Install",dept:"Construction",time:2,people:"Construction Crew"}),
+  // PAD parallel: Elec 1st fix | AC 1st fix | Ventilation
+  S({icon:"⚡",color:C.electrical,label:"Electrical 1st Fix (Building Services)",dept:"Elec Crew",time:3,people:"Elec Crew",group:"1ST-FIX",lane:"Electrical"}),
+  S({icon:"❄️",color:C.mech,label:"Air-Conditioning 1st Fix",dept:"AC Crew",time:2,people:"AC Crew",group:"1ST-FIX",lane:"AC / Mech"}),
+  S({icon:"🏠",color:C.construction,label:"Installation of Ceilings",dept:"Construction",time:3,people:"Construction + FRANNA"}),
+  S({icon:"🧱",color:C.construction,label:"Wall Sheeting & Insulation",dept:"Construction",time:10,people:"Construction Crew"}),
+  S({icon:"🎨",color:C.paint,label:"Internal Painting & Caulking",dept:"Paint Crew",time:4,people:"Paint Crew"}),
+  S({icon:"🚪",color:C.construction,label:"Doors Installation",dept:"Construction",time:2,people:"Construction Crew"}),
+  S({icon:"🟫",color:C.construction,label:"Tiling & Sealing",dept:"Construction",time:2,people:"Construction Crew"}),
+  S({icon:"⚡",color:C.electrical,label:"Electrical 2nd Fix (Building Services)",dept:"Elec Crew",time:4,people:"Elec Crew"}),
+  // PANELS parallel: HV | Protection | MSB/DB
+  S({icon:"⚡",color:C.electrical,label:"HV / Protection Panel Installation",dept:"Elec Crew",time:5,people:"Elec Crew",
+     group:"PANEL-INSTALL",lane:"HV / Prot Panel",panelMerge:true,info:"Panels from Panel Shop side track."}),
+  S({icon:"🗄️",color:C.electrical,label:"MSB / DB Installation",dept:"Elec Crew",time:3,people:"Elec Crew",
+     group:"PANEL-INSTALL",lane:"MSB / DB"}),
+  S({icon:"❄️",color:C.mech,label:"AC 2nd Fix",dept:"AC Crew",time:4,people:"AC Crew",
+     group:"PANEL-INSTALL",lane:"AC 2nd Fix"}),
+  S({icon:"🔌",color:C.electrical,label:"Cable Termination (per panel, per person)",dept:"Elec Crew",time:10,people:"Elec Crew"}),
+  S({icon:"✅",color:C.qa,label:"Commissioning & Greenline Check",dept:"Commissioning Crew",time:5,people:"Commissioning Crew"}),
+  S({icon:"📦",color:C.pad,label:"Loading & Packaging",dept:"Construction + FRANNA",time:1,people:"Construction Crew"}),
+  S({icon:"🚚",color:C.pad,label:"Transport to Site",dept:"Logistics",time:3,people:"Transport"}),
 ];}
 function swSide(){return[
-  S({icon:"📐",color:C.switchboard,label:"Panel Design & Long-Lead Orders",dept:"Procurement",time:30,people:"Procurement",info:"Relays, switchgear — very long lead."}),
-  S({icon:"🔩",color:C.switchboard,label:"Mechanical Build (DBs/MSBs)",dept:"SB Crew",time:10,people:"SB Crew"}),
-  S({icon:"📐",color:C.switchboard,label:"Schematics & Wiring",dept:"SB Elec",time:10,people:"SB Elec"}),
-  S({icon:"✅",color:C.switchboard,label:"Testing & FAT",dept:"SB Elec + QA",time:2,people:"SB + QA"}),
-  S({icon:"🚚",color:C.switchboard,label:"Transport → Site",dept:"Transport",time:1,people:"Transport"}),
+  S({icon:"📐",color:C.switchboard,label:"Panel Design & Long-Lead Orders",dept:"Procurement",time:30,people:"Procurement",
+     info:"SEL Relays, HV switchgear — 20–30 week lead times. Must run concurrent with main flow start."}),
+  S({icon:"🔩",color:C.switchboard,label:"Protection Panel — Mechanical Assembly",dept:"Switchboard Crew",time:10,people:"SB Crew"}),
+  S({icon:"⚡",color:C.switchboard,label:"Protection Panel — Electrical Assembly",dept:"SB Elec",time:10,people:"SB Elec"}),
+  S({icon:"✅",color:C.switchboard,label:"Protection Panel — QA Verification",dept:"SB Elec + QA",time:10,people:"SB + QA"}),
+  S({icon:"🔩",color:C.switchboard,label:"DB/MSB — Mechanical Assembly",dept:"Switchboard Crew",time:4,people:"SB Crew"}),
+  S({icon:"⚡",color:C.switchboard,label:"DB/MSB — Electrical Assembly",dept:"SB Elec",time:4,people:"SB Elec"}),
+  S({icon:"✅",color:C.switchboard,label:"DB/MSB — QA Verification",dept:"SB + QA",time:2,people:"SB + QA"}),
+  S({icon:"🚚",color:C.switchboard,label:"Transport Panels → Site",dept:"Transport",time:1,people:"Transport"}),
 ];}
 
-// ── O&M ──
-function omMain(){return[
-  S({icon:"📋",color:C.pm,label:"Scope & Work Order Review",dept:"PM",time:2,people:"1 PM"}),
-  S({icon:"🚗",color:C.neutral,label:"Mobilisation to Site",dept:"Field",time:1,people:"2 Tech"}),
-  S({icon:"🔒",color:C.qa,label:"Isolation & LOTO",dept:"Safety",time:1,people:"2 Tech",symbol:"🔒",info:"Lock-out / tag-out before any work."}),
-  S({icon:"🔍",color:C.blue,label:"Inspection & Condition Report",dept:"Field",time:2,people:"2 Tech"}),
-  S({icon:"🧰",color:C.mech,label:"Preventive Maintenance",dept:"Field",time:4,people:"3 Tech",group:"WORK",lane:"Mech"}),
-  S({icon:"⚡",color:C.electrical,label:"Electrical Servicing",dept:"Electrical",time:3,people:"2 Elec",group:"WORK",lane:"Elec"}),
-  S({icon:"🔧",color:C.fuel,label:"Component Replacement",dept:"Field",time:5,people:"3 Tech",panelMerge:true,info:"Waits on spares from side track."}),
-  S({icon:"✅",color:C.qa,label:"Functional Testing",dept:"QA",time:2,people:"2 Tech"}),
-  S({icon:"📝",color:C.pm,label:"Reinstate & De-isolate",dept:"Safety",time:1,people:"2 Tech"}),
-  S({icon:"🎉",color:C.pm,label:"Report & Handover",dept:"PM",time:2,people:"1 PM"}),
-];}
-function omSide(){return[
-  S({icon:"📦",color:C.switchboard,label:"Identify Spares Required",dept:"Procurement",time:2,people:"1 PM"}),
-  S({icon:"🛒",color:C.switchboard,label:"Order Parts (lead time)",dept:"Procurement",time:14,people:"Procurement",info:"Long-lead OEM parts."}),
-  S({icon:"📥",color:C.switchboard,label:"Receive & QA Parts",dept:"Stores",time:2,people:"Stores"}),
-];}
-
-// ── APU (Auxiliary Power Unit) ──
-function apuMain(){return[
-  S({icon:"📐",color:C.pm,label:"APU Design & Approval",dept:"Engineering",time:8,people:"Eng"}),
-  S({icon:"🔩",color:C.steel,label:"Skid Fabrication",dept:"Fabrication",time:10,people:"Fab Team"}),
-  S({icon:"🎨",color:C.paint,label:"Skid Paint & Coating",dept:"Paint",time:3,people:"Paint"}),
-  S({icon:"⚙️",color:C.mech,label:"Genset / Engine Install",dept:"Mechanical",time:6,people:"3 Mech",group:"FIT",lane:"Mech"}),
-  S({icon:"⛽",color:C.fuel,label:"Fuel System Install",dept:"Mechanical",time:4,people:"2 Mech",group:"FIT",lane:"Fuel"}),
-  S({icon:"⚡",color:C.electrical,label:"Power & Earthing Connection",dept:"Electrical",time:5,people:"3 Elec"}),
-  S({icon:"🎛️",color:C.qa,label:"Controls Integration",dept:"Controls",time:6,people:"2",panelMerge:true,info:"Needs control panel from side track."}),
-  S({icon:"✅",color:C.qa,label:"Load Bank Testing",dept:"QA",time:3,people:"3"}),
-  S({icon:"🎉",color:C.pm,label:"Commission & Handover",dept:"PM",time:3,people:"3"}),
-];}
-function apuSide(){return[
-  S({icon:"📐",color:C.switchboard,label:"Control Panel Design",dept:"Controls Eng",time:7,people:"Eng"}),
-  S({icon:"🔩",color:C.switchboard,label:"Panel Build & Wiring",dept:"Panel Shop",time:12,people:"Panel Crew"}),
-  S({icon:"✅",color:C.switchboard,label:"Panel FAT",dept:"QA",time:2,people:"QA"}),
-];}
-
-// ── KIOSK ──
+// ════════════════════════════════════════════════════════════════
+//  KIOSK (4722/5851 — GSUT Kiosk)
+//  Based on Primavera schedule: 194 work days total
+//  Baseframe+GRC: 74d | Panelshop: 128d | Erection+Fitout: 108d | T&C: 5d | Delivery: 7d
+// ════════════════════════════════════════════════════════════════
 function kioskMain(){return[
-  S({icon:"📐",color:C.pm,label:"Kiosk Design & BOM",dept:"Engineering",time:5,people:"Eng"}),
-  S({icon:"🔩",color:C.steel,label:"Enclosure Fabrication",dept:"Fabrication",time:8,people:"Fab"}),
-  S({icon:"🎨",color:C.paint,label:"Paint & Finish",dept:"Paint",time:3,people:"Paint"}),
-  S({icon:"🗄️",color:C.electrical,label:"Equipment Install",dept:"Electrical",time:5,people:"2 Elec",panelMerge:true,info:"Needs switchgear from side track."}),
-  S({icon:"🔌",color:C.electrical,label:"Wiring & Terminations",dept:"Electrical",time:6,people:"2 Elec"}),
-  S({icon:"✅",color:C.qa,label:"Testing & FAT",dept:"QA",time:3,people:"2"}),
-  S({icon:"🚚",color:C.pad,label:"Transport to Site",dept:"Logistics",time:1,people:"2"}),
-  S({icon:"🏗️",color:C.construction,label:"Site Install & Connect",dept:"Field",time:3,people:"3"}),
-  S({icon:"🎉",color:C.pm,label:"Commission & Handover",dept:"PM",time:2,people:"2"}),
+  // Long-lead (runs from day 1 — very long lead items)
+  S({icon:"📋",color:C.pm,label:"Procurement & Long-Lead Orders",dept:"PM / Procurement",time:6,people:"1 PM",
+     info:"HV Switchgear (60d float), Tx & RMU (critical — 0 float). Order immediately on project start."}),
+  // Kiosk Design milestones (AFC drawings, cable schedule)
+  S({icon:"📐",color:C.pm,label:"AFC Fabrication Drawings & Schematics",dept:"Engineering",time:5,people:"Eng",
+     info:"AFC Fabrication Drawings + Kiosk Services Schematics + AFC Cable Schedule required before manufacturing."}),
+  // PREFAB parallel
+  S({icon:"🏗️",color:C.baseframe,label:"Baseframe Fabrication",dept:"Baseframe Crew",time:5,people:"BF Crew",
+     group:"PREFAB-K",lane:"Baseframe / Paint",note:"BF connects directly to storage at Pad by section."}),
+  S({icon:"🎨",color:C.paint,label:"Baseframe — Paint Shop",dept:"Paint Crew",time:2,people:"Paint",
+     group:"PREFAB-K",lane:"Baseframe / Paint"}),
+  S({icon:"🏠",color:C.roof,label:"Roof Frame Fabrication",dept:"Roof Framing Crew",time:6,people:"Roof Crew",
+     group:"PREFAB-K",lane:"Roof + Wall Frames",note:"Deliver one panel per day to GRC Spray."}),
+  S({icon:"🧱",color:C.wall,label:"Wall Frame Fabrication (8 panels)",dept:"Wall Framing Crew",time:8,people:"Wall Crew",
+     group:"PREFAB-K",lane:"Roof + Wall Frames",note:"Deliver one panel per day to GRC Spray."}),
+  // GRC chain
+  S({icon:"💨",color:C.wall,label:"GRC Concrete Spray — Walls",dept:"GRC Spray Crew",time:8,people:"GRC Spray Crew"}),
+  S({icon:"💨",color:C.wall,label:"GRC Concrete Spray — Roofs",dept:"GRC Spray Crew",time:8,people:"GRC Spray Crew"}),
+  S({icon:"🚚",color:C.pad,label:"Baseframe & GRC Issued to Lonsdale Yard",dept:"Logistics",time:1,people:"Logistics",
+     info:"BF + GRC panels issued to yard for erection."}),
+  // Platform (runs late in baseframe sequence per schedule)
+  S({icon:"🔩",color:C.steel,label:"Platform Fabrication",dept:"Heavy Steel Crew",time:5,people:"Heavy Steel"}),
+  // Erection & Fitout
+  S({icon:"🏗️",color:C.construction,label:"Switchroom Erection",dept:"Construction Crew + FRANNA",time:4,people:"Construction + FRANNA"}),
+  S({icon:"🔧",color:C.construction,label:"Cable Tray Fitout",dept:"Construction Crew",time:2,people:"Construction"}),
+  S({icon:"⚡",color:C.electrical,label:"Sub-Floor Cable Install",dept:"Elec Crew",time:2,people:"Elec Crew"}),
+  S({icon:"🏠",color:C.construction,label:"External Painting & Caulking",dept:"Paint Crew",time:3,people:"Paint Crew"}),
+  S({icon:"🟫",color:C.construction,label:"CFC Flooring Install",dept:"Construction",time:2,people:"Construction"}),
+  S({icon:"🧱",color:C.construction,label:"Wall Sheeting & Insulation",dept:"Construction",time:3,people:"Construction"}),
+  // Parallel: Elec 1st fix | AC 1st fix | Ventilation
+  S({icon:"⚡",color:C.electrical,label:"Electrical 1st Fix",dept:"Elec Crew",time:3,people:"Elec Crew",group:"1FIX-K",lane:"Electrical"}),
+  S({icon:"❄️",color:C.mech,label:"Air-Conditioning 1st Fix",dept:"AC Crew",time:2,people:"AC Crew",group:"1FIX-K",lane:"AC"}),
+  S({icon:"💨",color:C.mech,label:"Ventilation",dept:"Construction",time:2,people:"Construction",group:"1FIX-K",lane:"Ventilation"}),
+  S({icon:"🏠",color:C.construction,label:"Installation of Ceilings (FRANNA)",dept:"Construction",time:3,people:"Construction + FRANNA"}),
+  S({icon:"🎨",color:C.paint,label:"Internal Painting & Caulking",dept:"Paint Crew",time:4,people:"Paint Crew"}),
+  S({icon:"🚪",color:C.construction,label:"Doors Installation",dept:"Construction",time:2,people:"Construction"}),
+  S({icon:"🟫",color:C.construction,label:"Tiling & Sealing",dept:"Construction",time:2,people:"Construction"}),
+  S({icon:"⚡",color:C.electrical,label:"Electrical 2nd Fix (Building Services)",dept:"Elec Crew",time:4,people:"Elec Crew"}),
+  S({icon:"🔌",color:C.electrical,label:"DB / Individual Panels Installation",dept:"Elec Crew",time:3,people:"Elec Crew",
+     panelMerge:true,info:"Panels from Panel Shop side track."}),
+  S({icon:"🔥",color:C.mech,label:"Electrical 2nd Fix (Fire System)",dept:"Fire & Refrigeration Team",time:5,people:"Fire Team",
+     note:"No gas: 2–3 people, 1 day. Gas system: 5–10 days."}),
+  S({icon:"❄️",color:C.mech,label:"AC 2nd Fix",dept:"AC Crew",time:4,people:"AC Crew"}),
+  S({icon:"⚡",color:C.electrical,label:"Protection Panel Installation",dept:"Elec Crew",time:5,people:"Elec Crew"}),
+  S({icon:"🔌",color:C.electrical,label:"Protection Panel Termination",dept:"Elec Crew",time:12,people:"Elec Crew"}),
+  S({icon:"⚡",color:C.electrical,label:"Tx & RMU — Electrical Installation",dept:"Elec Crew",time:3,people:"Elec Crew",
+     info:"Requires Tx & RMU delivery (critical path item — 0 float)."}),
+  S({icon:"🔌",color:C.electrical,label:"Tx & RMU — Termination",dept:"Elec Crew",time:4,people:"Elec Crew"}),
+  S({icon:"✅",color:C.qa,label:"Test & Commissioning",dept:"Commissioning Crew",time:5,people:"Commissioning Crew"}),
+  S({icon:"📦",color:C.pad,label:"Loading & Packaging",dept:"Construction + FRANNA",time:1,people:"Construction"}),
+  S({icon:"🚚",color:C.pad,label:"Transport to Site",dept:"Logistics",time:6,people:"Transport"}),
 ];}
 function kioskSide(){return[
-  S({icon:"🔌",color:C.switchboard,label:"Switchgear Order (lead)",dept:"Procurement",time:20,people:"Procurement"}),
-  S({icon:"📥",color:C.switchboard,label:"Receive & Inspect",dept:"Stores",time:2,people:"Stores"}),
+  S({icon:"📐",color:C.switchboard,label:"AFC 322 & 325 Drawings Released",dept:"Engineering",time:1,people:"Eng",
+     info:"Triggers Protection Panel and DB manufacturing in Panel Shop."}),
+  // Protection Panel (20d: 10 Mech + 10 Elec + 10 QA — sequential)
+  S({icon:"🔩",color:C.switchboard,label:"Protection Panel — Mechanical Assembly",dept:"SB Crew",time:10,people:"SB Crew"}),
+  S({icon:"⚡",color:C.switchboard,label:"Protection Panel — Electrical Assembly",dept:"SB Elec",time:10,people:"SB Elec"}),
+  S({icon:"✅",color:C.switchboard,label:"Protection Panel — QA Verification",dept:"SB + QA",time:10,people:"SB + QA"}),
+  // DB (9d)
+  S({icon:"🔩",color:C.switchboard,label:"DB — Mechanical Assembly",dept:"SB Crew",time:4,people:"SB Crew"}),
+  S({icon:"⚡",color:C.switchboard,label:"DB — Electrical Assembly",dept:"SB Elec",time:4,people:"SB Elec"}),
+  S({icon:"✅",color:C.switchboard,label:"DB — QA Verification",dept:"SB + QA",time:2,people:"SB + QA"}),
+  S({icon:"⚙️",color:C.switchboard,label:"Kiosk Manufacturing (General)",dept:"SB Crew",time:18,people:"SB Crew",
+     info:"Overall Manufacturing tracking 18d + Commissioning 2d per schedule."}),
+  S({icon:"✅",color:C.switchboard,label:"Panel Shop Commissioning",dept:"SB + QA",time:2,people:"SB + QA"}),
+  S({icon:"🚚",color:C.switchboard,label:"Transport Panels → Site",dept:"Transport",time:1,people:"Transport"}),
 ];}
 
-// ═══════════════════════════════════════════════════════
-//  STATE   cloud.flows["template::project"] = {main, side}
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+//  O&M BUILDING (3720 — Waddi WF, 16m × 9m)
+//  Total: 105d manufacturing + 69d erection/fitout + 9d delivery = ~105 work days
+// ════════════════════════════════════════════════════════════════
+function omMain(){return[
+  S({icon:"📋",color:C.pm,label:"AFC Building Drawings Released",dept:"Engineering",time:5,people:"Eng",
+     info:"AFC Building Drawings, DB/JB/Comms 322 & 325 received before manufacturing can start."}),
+  // PREFAB parallel: Baseframe | Wall Panels | Roof (all run somewhat concurrently)
+  // Baseframe: Sec1 BF Fab 5d → Sec1 Paint 2d → Sec1 transport 1d | Sec2 BF Fab 5d → paint 2d → transport 1d | Platform 5d | Welding 3d  = ~15d
+  S({icon:"🏗️",color:C.baseframe,label:"Section 1 — Baseframe Fabrication",dept:"Baseframe Crew",time:5,people:"BF Crew",
+     group:"PREFAB-OM",lane:"Baseframe",note:"BF connects directly to storage at Pad by section."}),
+  S({icon:"🎨",color:C.paint,label:"Section 1 — Baseframe Painting",dept:"Paint Crew",time:2,people:"Paint",
+     group:"PREFAB-OM",lane:"Baseframe"}),
+  S({icon:"🏗️",color:C.baseframe,label:"Section 2 — Baseframe Fabrication",dept:"Baseframe Crew",time:5,people:"BF Crew",
+     group:"PREFAB-OM",lane:"Baseframe"}),
+  S({icon:"🎨",color:C.paint,label:"Section 2 — Baseframe Painting",dept:"Paint Crew",time:2,people:"Paint",
+     group:"PREFAB-OM",lane:"Baseframe"}),
+  // Wall panels lane: Wall Frame Fab 4d → GRC Spray 4d → transport 1d
+  S({icon:"🧱",color:C.wall,label:"Wall Frame Fabrication",dept:"Wall Framing Crew",time:4,people:"Wall Crew",
+     group:"PREFAB-OM",lane:"Wall Panels",note:"Deliver one panel per day to GRC Spray."}),
+  S({icon:"💨",color:C.wall,label:"Wall Panels — GRC Spray",dept:"GRC Spray Crew",time:4,people:"GRC Crew",
+     group:"PREFAB-OM",lane:"Wall Panels"}),
+  // Roof lane: Truss & H-Section Fab 5d → Roof Frame Fab 7d → GRC Spray 7d → transport 1d
+  S({icon:"🏠",color:C.roof,label:"Truss & H-Section Fabrication",dept:"Fab Crew",time:5,people:"Fab Crew",
+     group:"PREFAB-OM",lane:"Roof",note:"Deliver one panel per day."}),
+  S({icon:"🏠",color:C.roof,label:"Roof Frame Fabrication",dept:"Roof Framing Crew",time:7,people:"Roof Crew",
+     group:"PREFAB-OM",lane:"Roof"}),
+  S({icon:"💨",color:C.wall,label:"Roof Frame — GRC Spray",dept:"GRC Spray Crew",time:7,people:"GRC Crew",
+     group:"PREFAB-OM",lane:"Roof"}),
+  S({icon:"📍",color:C.construction,label:"O&M Ready for Erection",dept:"Yard",time:1,people:"Yard Crew",
+     info:"All BF sections + GRC panels at 2SR Yard, ready for erection."}),
+  // Platform fab (runs separately per schedule)
+  S({icon:"🔩",color:C.steel,label:"Platform Fabrication",dept:"Heavy Steel Crew",time:5,people:"Heavy Steel"}),
+  S({icon:"🔧",color:C.construction,label:"Baseframe Welding (at Yard)",dept:"Welding",time:3,people:"Welder",
+     nonValue:true,symbol:"🔴",note:"Non-added value — weld sections before transport where possible."}),
+  // Erection & Fitout (69d critical path)
+  S({icon:"🏗️",color:C.construction,label:"O&M Building Erection",dept:"Construction Crew + FRANNA",time:7,people:"Construction + FRANNA"}),
+  S({icon:"🔧",color:C.mech,label:"Plumbing 1st Fix",dept:"Plumbing",time:3,people:"Plumber"}),
+  S({icon:"🟫",color:C.construction,label:"CFC Flooring Install",dept:"Construction",time:5,people:"Construction"}),
+  // Parallel: Ext Paint | Windows | Elec 1st | AC 1st
+  S({icon:"🎨",color:C.paint,label:"External Painting & Caulking",dept:"Paint Crew",time:4,people:"Paint",group:"1FIX-OM",lane:"Ext Finish"}),
+  S({icon:"🪟",color:C.construction,label:"Installation of Windows (1st)",dept:"Construction",time:4,people:"Construction",group:"1FIX-OM",lane:"Windows"}),
+  S({icon:"⚡",color:C.electrical,label:"Electrical 1st Fix",dept:"Elec Crew",time:4,people:"Elec Crew",group:"1FIX-OM",lane:"Elec 1st Fix"}),
+  S({icon:"❄️",color:C.mech,label:"Air-Conditioning 1st Fix",dept:"AC Crew",time:3,people:"AC Crew",group:"1FIX-OM",lane:"AC 1st Fix"}),
+  S({icon:"🏠",color:C.construction,label:"Installation of Ceilings (FRANNA)",dept:"Construction",time:6,people:"Construction + FRANNA"}),
+  S({icon:"🧱",color:C.construction,label:"Wall Sheeting & Insulation",dept:"Construction",time:20,people:"Construction Crew",
+     info:"20d — large building (16m × 9m)."}),
+  S({icon:"🎨",color:C.paint,label:"Internal Painting",dept:"Paint Crew",time:4,people:"Paint"}),
+  S({icon:"🚪",color:C.construction,label:"Doors Installation",dept:"Construction",time:2,people:"Construction"}),
+  S({icon:"🟫",color:C.construction,label:"Tiling",dept:"Construction",time:5,people:"Construction"}),
+  // Parallel: Elec 2nd fix | Plumbing 2nd
+  S({icon:"⚡",color:C.electrical,label:"Electrical 2nd Fix",dept:"Fire & Refrigeration Team",time:5,people:"Fire Team",group:"2FIX-OM",lane:"Elec / Fire"}),
+  S({icon:"🔧",color:C.mech,label:"Plumbing 2nd Fix",dept:"Plumbing",time:7,people:"Plumber",group:"2FIX-OM",lane:"Plumbing"}),
+  S({icon:"⚙️",color:C.electrical,label:"Equipment Installation",dept:"Elec Crew",time:3,people:"Elec Crew",
+     panelMerge:true,info:"DBs, JBs, Comms panels — from Panel Shop side track."}),
+  S({icon:"🔌",color:C.electrical,label:"Cable Termination & Testing",dept:"Elec Crew",time:5,people:"Elec Crew"}),
+  S({icon:"📦",color:C.pad,label:"Loading",dept:"Construction + FRANNA",time:5,people:"Construction"}),
+  S({icon:"🚚",color:C.pad,label:"Transport to Site",dept:"Logistics",time:5,people:"Transport"}),
+];}
+function omSide(){return[
+  S({icon:"📦",color:C.switchboard,label:"Comms Panel — Procurement",dept:"Procurement",time:5,people:"Procurement"}),
+  S({icon:"⚙️",color:C.switchboard,label:"Comms Panel — Manufacture & Test",dept:"SB Crew",time:1,people:"SB Crew"}),
+  S({icon:"📦",color:C.switchboard,label:"DB — Procurement",dept:"Procurement",time:5,people:"Procurement"}),
+  S({icon:"⚙️",color:C.switchboard,label:"DB — Manufacture & Test",dept:"SB Crew",time:7,people:"SB Crew"}),
+  S({icon:"📦",color:C.switchboard,label:"Junction Box (×2) — Procurement",dept:"Procurement",time:5,people:"Procurement"}),
+  S({icon:"⚙️",color:C.switchboard,label:"JB — Manufacture & Test",dept:"SB Crew",time:2,people:"SB Crew"}),
+  S({icon:"🚚",color:C.switchboard,label:"Transport Panels → Site",dept:"Transport",time:1,people:"Transport"}),
+];}
+
+// ════════════════════════════════════════════════════════════════
+//  APU (3720 — Waddi WF, 12m × 3.2m)
+//  Total: ~92 work days
+//  BF+GRC: 10d | Panelshop: 28d | Erection+Fitout: 65d | T&C: 11d | Delivery: 7d
+// ════════════════════════════════════════════════════════════════
+function apuMain(){return[
+  S({icon:"📋",color:C.pm,label:"AFC Fabrication Drawings & Procurement",dept:"Engineering / PM",time:5,people:"Eng + PM",
+     info:"AFC Fab Drawings, AFC Cable Schedule. Procurement: MSB +WC01, DB +WC07, +UH41 Control Panel."}),
+  // Equipment delivery milestones (critical)
+  S({icon:"🚚",color:C.pm,label:"Genset, RMU & Transformer Delivery",dept:"Procurement",time:1,people:"Procurement",
+     info:"Required Genset, RMU, Transformer all due same day — critical path (0 float). Order with long lead."}),
+  // PREFAB parallel: Baseframe | Wall Panels | Roof
+  S({icon:"🏗️",color:C.baseframe,label:"Baseframe Fabrication",dept:"Baseframe Crew",time:5,people:"BF Crew",
+     group:"PREFAB-APU",lane:"Baseframe",note:"BF connects directly to storage at Pad by section."}),
+  S({icon:"🎨",color:C.paint,label:"Baseframe Painting",dept:"Paint Crew",time:2,people:"Paint",
+     group:"PREFAB-APU",lane:"Baseframe"}),
+  S({icon:"🔩",color:C.steel,label:"Platform Fabrication",dept:"Heavy Steel Crew",time:5,people:"Heavy Steel",
+     group:"PREFAB-APU",lane:"Baseframe"}),
+  // Wall panels lane (5d total — smaller building)
+  S({icon:"🧱",color:C.wall,label:"Wall Frame Fabrication",dept:"Wall Framing Crew",time:3,people:"Wall Crew",
+     group:"PREFAB-APU",lane:"Wall Panels",note:"Deliver one panel per day."}),
+  S({icon:"💨",color:C.wall,label:"Wall Panels — GRC Spray",dept:"GRC Spray Crew",time:3,people:"GRC Crew",
+     group:"PREFAB-APU",lane:"Wall Panels"}),
+  // Roof lane (7d total)
+  S({icon:"🏠",color:C.roof,label:"Truss & H-Section Fabrication",dept:"Fab Crew",time:3,people:"Fab Crew",
+     group:"PREFAB-APU",lane:"Roof"}),
+  S({icon:"🏠",color:C.roof,label:"Roof Frame Fabrication",dept:"Roof Framing Crew",time:2,people:"Roof Crew",
+     group:"PREFAB-APU",lane:"Roof"}),
+  S({icon:"💨",color:C.wall,label:"Roof Frame — GRC Spray",dept:"GRC Spray Crew",time:2,people:"GRC Crew",
+     group:"PREFAB-APU",lane:"Roof"}),
+  S({icon:"📍",color:C.construction,label:"APU Ready for Erection",dept:"Yard",time:1,people:"Yard Crew",
+     info:"All BF sections + GRC panels at 2SR Yard."}),
+  // Erection & Fitout (65d)
+  S({icon:"🏗️",color:C.construction,label:"APU Erection",dept:"Construction Crew + FRANNA",time:4,people:"Construction + FRANNA"}),
+  S({icon:"🔧",color:C.construction,label:"Cable Tray Fitout",dept:"Construction",time:3,people:"Construction"}),
+  S({icon:"⚡",color:C.electrical,label:"Sub-Floor Cable Install",dept:"Elec Crew",time:3,people:"Elec Crew"}),
+  S({icon:"🟫",color:C.construction,label:"CFC Flooring Install",dept:"Construction",time:3,people:"Construction"}),
+  // Parallel: Ext paint | Wall sheeting
+  S({icon:"🎨",color:C.paint,label:"External Painting & Caulking",dept:"Paint Crew",time:4,people:"Paint",group:"EXT-APU",lane:"Ext Finish"}),
+  S({icon:"🧱",color:C.construction,label:"Wall Sheeting & Insulation",dept:"Construction",time:7,people:"Construction",group:"EXT-APU",lane:"Wall Sheeting"}),
+  // Parallel 1st fix
+  S({icon:"⚡",color:C.electrical,label:"Electrical 1st Fix",dept:"Elec Crew",time:5,people:"Elec Crew",group:"1FIX-APU",lane:"Elec 1st Fix"}),
+  S({icon:"❄️",color:C.mech,label:"Air-Conditioning 1st Fix",dept:"AC Crew",time:3,people:"AC Crew",group:"1FIX-APU",lane:"AC 1st Fix"}),
+  S({icon:"🏠",color:C.construction,label:"Installation of Ceilings",dept:"Construction",time:3,people:"Construction + FRANNA"}),
+  S({icon:"💨",color:C.mech,label:"Ventilation",dept:"Construction",time:2,people:"Construction"}),
+  S({icon:"🎨",color:C.paint,label:"Internal Painting & Caulking",dept:"Paint Crew",time:4,people:"Paint"}),
+  S({icon:"🚪",color:C.construction,label:"Doors Installation",dept:"Construction",time:2,people:"Construction"}),
+  S({icon:"🟫",color:C.construction,label:"Tiling & Sealing",dept:"Construction",time:2,people:"Construction"}),
+  S({icon:"⚡",color:C.electrical,label:"Electrical 2nd Fix (Building Services)",dept:"Elec Crew",time:3,people:"Elec Crew"}),
+  S({icon:"🔥",color:C.mech,label:"Electrical 2nd Fix (Fire System)",dept:"Fire Team",time:5,people:"Fire Team"}),
+  S({icon:"❄️",color:C.mech,label:"AC 2nd Fix",dept:"AC Crew",time:4,people:"AC Crew"}),
+  // Panel installations
+  S({icon:"⚙️",color:C.electrical,label:"DB / Individual Panels Installation",dept:"Elec Crew",time:1,people:"Elec Crew",
+     panelMerge:true,info:"DB +WC07, MCC from Panel Shop side track."}),
+  S({icon:"⚙️",color:C.electrical,label:"MCC Installation",dept:"Elec Crew",time:1,people:"Elec Crew"}),
+  S({icon:"🔌",color:C.electrical,label:"Free Issued Items Termination",dept:"Elec Crew",time:5,people:"Elec Crew"}),
+  S({icon:"🔌",color:C.electrical,label:"DB / Panels Termination",dept:"Elec Crew",time:5,people:"Elec Crew"}),
+  S({icon:"🔌",color:C.electrical,label:"MCC Termination",dept:"Elec Crew",time:5,people:"Elec Crew"}),
+  S({icon:"🔌",color:C.electrical,label:"Cable Termination",dept:"Elec Crew",time:5,people:"Elec Crew"}),
+  S({icon:"✅",color:C.qa,label:"Lonsdale Commissioning",dept:"Commissioning Crew",time:1,people:"Commissioning"}),
+  S({icon:"✅",color:C.qa,label:"Full Commissioning",dept:"Commissioning Crew",time:10,people:"Commissioning Crew"}),
+  S({icon:"📦",color:C.pad,label:"Loading & Packaging",dept:"Construction + FRANNA",time:1,people:"Construction"}),
+  S({icon:"🚚",color:C.pad,label:"Transport to Site",dept:"Logistics",time:6,people:"Transport"}),
+];}
+function apuSide(){return[
+  // MSB +WC01 (25d manufacture + procurement lead)
+  S({icon:"📦",color:C.switchboard,label:"MSB +WC01 — Procurement (lead time ~21d)",dept:"Procurement",time:21,people:"Procurement",
+     info:"Lead time procurement — General calendar 24×7."}),
+  S({icon:"⚙️",color:C.switchboard,label:"MSB +WC01 — Manufacture & Test",dept:"SB Crew",time:25,people:"SB Crew"}),
+  // DB +WC07 (7d)
+  S({icon:"📦",color:C.switchboard,label:"DB +WC07 — Procurement (lead time ~18d)",dept:"Procurement",time:18,people:"Procurement"}),
+  S({icon:"⚙️",color:C.switchboard,label:"DB +WC07 — Manufacture & Test",dept:"SB Crew",time:7,people:"SB Crew"}),
+  // +UH41 Protection/Control Panel (15d)
+  S({icon:"📦",color:C.switchboard,label:"+UH41 Control Panel — Procurement (lead ~28d)",dept:"Procurement",time:28,people:"Procurement"}),
+  S({icon:"⚙️",color:C.switchboard,label:"+UH41 — Manufacture & Test",dept:"SB Crew",time:15,people:"SB Crew"}),
+  S({icon:"🚚",color:C.switchboard,label:"Transport Panels → Site",dept:"Transport",time:1,people:"Transport"}),
+];}
+
+// ════════════════════════════════════════════════════════════════
+//  PANEL SHOP (standalone view)
+//  Covers: Protection Panels, MSBs, DBs, Junction Boxes, Comms Panels
+//  Each panel type flows: Design → Mech Assembly → Elec Assembly → QA/FAT → Transport
+// ════════════════════════════════════════════════════════════════
+function psMain(){return[
+  // Protection Panel (longest — drives building flow)
+  S({icon:"📐",color:C.pm,label:"AFC Drawings & Schematics Received",dept:"Engineering",time:1,people:"Eng",
+     info:"GA drawings + Schematic drawings released before panel shop can start."}),
+  S({icon:"📋",color:C.switchboard,label:"Long-Lead Component Orders",dept:"Procurement",time:5,people:"Procurement",
+     info:"SEL Relays, trip units, HV components. Lead times 8–30 weeks — order immediately on drawing release."}),
+  // Protection Panel build
+  S({icon:"🔩",color:C.switchboard,label:"Protection Panel — Mechanical Assembly",dept:"SB Crew",time:10,people:"SB Crew (Prot Panel capacity)",
+     group:"PROT-PANEL",lane:"Protection Panel"}),
+  S({icon:"⚡",color:C.switchboard,label:"Protection Panel — Electrical Assembly",dept:"SB Elec",time:10,people:"SB Elec",
+     group:"PROT-PANEL",lane:"Protection Panel"}),
+  S({icon:"✅",color:C.qa,label:"Protection Panel — QA Verification",dept:"SB + QA",time:10,people:"SB + QA",
+     group:"PROT-PANEL",lane:"Protection Panel"}),
+  // MSB (can run parallel to Protection Panel)
+  S({icon:"🔩",color:C.switchboard,label:"MSB — Mechanical Assembly",dept:"SB Crew",time:10,people:"SB Crew",
+     group:"PROT-PANEL",lane:"MSB"}),
+  S({icon:"⚡",color:C.switchboard,label:"MSB — Electrical Assembly",dept:"SB Elec",time:10,people:"SB Elec",
+     group:"PROT-PANEL",lane:"MSB"}),
+  S({icon:"✅",color:C.qa,label:"MSB — QA Verification",dept:"SB + QA",time:5,people:"SB + QA",
+     group:"PROT-PANEL",lane:"MSB"}),
+  // DB build (sequential after MSB capacity frees up)
+  S({icon:"🔩",color:C.switchboard,label:"DB — Mechanical Assembly",dept:"SB Crew",time:4,people:"SB Crew (DB/Ctrl capacity)"}),
+  S({icon:"⚡",color:C.switchboard,label:"DB — Electrical Assembly",dept:"SB Elec",time:4,people:"SB Elec"}),
+  S({icon:"✅",color:C.qa,label:"DB — QA Verification",dept:"SB + QA",time:2,people:"SB + QA"}),
+  // Junction Box & Comms
+  S({icon:"🔌",color:C.switchboard,label:"Junction Box (×2) — Assembly & Test",dept:"SB Crew",time:2,people:"SB Crew",
+     group:"SMALL-PANELS",lane:"JB"}),
+  S({icon:"📡",color:C.switchboard,label:"Comms Panel — Manufacture & Test",dept:"SB Crew",time:1,people:"SB Crew",
+     group:"SMALL-PANELS",lane:"Comms"}),
+  // FAT & dispatch
+  S({icon:"✅",color:C.qa,label:"Factory Acceptance Test (FAT) — All Panels",dept:"Commissioning + QA",time:2,people:"Commissioning + QA",
+     info:"All panels tested before leaving Panel Shop."}),
+  S({icon:"📦",color:C.pad,label:"Pack & Prepare for Transport",dept:"SB Crew",time:1,people:"SB Crew"}),
+  S({icon:"🚚",color:C.pad,label:"Transport Panels → Lonsdale 2SR Yard",dept:"Transport",time:1,people:"Transport"}),
+];}
+function psSide(){return[
+  S({icon:"📐",color:C.pm,label:"Job Documentation Received",dept:"Engineering",time:1,people:"Eng",
+     info:"AFC drawings, schematics, cable schedules — must all be released before Panel Shop starts."}),
+  S({icon:"📋",color:C.pm,label:"Bill of Materials (BOM) Check",dept:"Stores / Procurement",time:1,people:"Stores"}),
+  S({icon:"🔒",color:C.qa,label:"ITP / Hold Points Defined",dept:"QA",time:1,people:"QA",
+     info:"Inspection & Test Plan set before work begins."}),
+  S({icon:"📦",color:C.switchboard,label:"Components Issued to Panel Shop Floor",dept:"Stores",time:1,people:"Stores"}),
+  S({icon:"✅",color:C.qa,label:"FAT Witnessed & Signed Off",dept:"QA / Client Rep",time:2,people:"QA + Client",
+     info:"Client witness FAT before transport if required."}),
+];}
+
+// ════════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════════
 let cloud={flows:{},history:[]};
 let stages=[],sb=[],hl={};
 let currentTemplate="switchroom",currentProject="Default";
 const keyOf=(t,p)=>`${t}::${p}`;
 
-function configured(){return BIN_ID&&!BIN_ID.startsWith("PASTE")&&API_KEY&&!API_KEY.startsWith("PASTE");}
+function configured(){
+  return BIN_ID&&!BIN_ID.startsWith("PASTE")&&API_KEY&&!API_KEY.startsWith("PASTE");
+}
 
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 //  STARTUP
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 async function start(){
-  renderTemplateSel(); renderLegend();
+  renderTemplateSel();
+  renderLegend();
   if(!configured()){
-    document.getElementById("setupBanner").style.display="block";
-    document.getElementById("setupBanner").innerHTML="⚠️ <b>Not connected to cloud yet.</b> You can switch layouts, edit and simulate — but Save needs BIN_ID + API_KEY (see chat). Showing built-in defaults.";
-    loadDefaultsIntoView(); refreshAll(); setSS("Offline — set up cloud to save");
+    document.getElementById("setupBanner").style.display="flex";
+    loadDefaultsIntoView();
+    refreshAll();
+    setSS("⚠️ Offline — paste JSONBin keys in CONFIG block to enable cloud Save");
     return;
   }
   await loadCloud();
@@ -281,219 +568,527 @@ async function loadCloud(){
     if(!r.ok) throw new Error("HTTP "+r.status);
     const data=await r.json();
     cloud=(data&&data.flows)?data:{flows:{},history:[]};
-    loadCurrentOrDefault(); refreshAll();
-    setSS(`Loaded ✓ ${new Date().toLocaleTimeString("en-AU")}`);
+    loadCurrentOrDefault();
+    refreshAll();
+    setSS(`✓ Loaded ${new Date().toLocaleTimeString("en-AU")}`);
   }catch(e){
-    console.error(e); loadDefaultsIntoView(); refreshAll();
-    setSS("Load failed — check BIN_ID/API_KEY. Using defaults.");
-    toast("Couldn't reach cloud: "+e.message,"error");
+    console.error(e);
+    loadDefaultsIntoView();
+    refreshAll();
+    setSS("⚠️ Cloud load failed — using defaults");
+    toast("Couldn't reach JSONBin: "+e.message,"error");
   }
 }
 
-function loadDefaultsIntoView(){const t=TEMPLATES[currentTemplate];stages=t.main();sb=t.side();}
+function loadDefaultsIntoView(){
+  const t=TEMPLATES[currentTemplate];
+  stages=t.main();
+  sb=t.side();
+}
 function loadCurrentOrDefault(){
   const k=keyOf(currentTemplate,currentProject);
-  if(cloud.flows[k]){stages=cloud.flows[k].main||TEMPLATES[currentTemplate].main();sb=cloud.flows[k].side||TEMPLATES[currentTemplate].side();}
-  else loadDefaultsIntoView();
+  if(cloud.flows[k]){
+    stages=cloud.flows[k].main||TEMPLATES[currentTemplate].main();
+    sb=cloud.flows[k].side||TEMPLATES[currentTemplate].side();
+  }else{loadDefaultsIntoView();}
 }
 
+// ════════════════════════════════════════════════════════════════
+//  SAVE  (offline-safe: saves to cloud.flows in memory always)
+// ════════════════════════════════════════════════════════════════
 async function saveFlow(){
-  if(!configured()){toast("Set up cloud first (BIN_ID + API_KEY)","error");return;}
-  setSS("Saving…");
+  // Always save to in-memory cloud object first
   const k=keyOf(currentTemplate,currentProject);
   cloud.flows[k]={main:stages,side:sb};
   cloud.history=cloud.history||[];
-  cloud.history.unshift({title:`${TEMPLATES[currentTemplate].label} · ${currentProject} — ${new Date().toLocaleString("en-AU")}`,tkey:k,main:JSON.parse(JSON.stringify(stages)),side:JSON.parse(JSON.stringify(sb))});
+  cloud.history.unshift({
+    title:`${TEMPLATES[currentTemplate].label} · ${currentProject} — ${new Date().toLocaleString("en-AU")}`,
+    tkey:k,
+    main:JSON.parse(JSON.stringify(stages)),
+    side:JSON.parse(JSON.stringify(sb))
+  });
   cloud.history=cloud.history.slice(0,60);
+
+  if(!configured()){
+    toast("✅ Saved locally (session only). Add JSONBin keys in CONFIG block for shared cloud save.","info");
+    setSS("✓ Session saved (offline)");
+    return;
+  }
+  setSS("Saving to cloud…");
   try{
     const r=await fetch(API,{method:"PUT",headers:HEADERS,body:JSON.stringify(cloud)});
     if(!r.ok) throw new Error("HTTP "+r.status);
-    setSS(`Saved ✓ ${new Date().toLocaleTimeString("en-AU")}`);
-    toast("Saved to shared cloud ✅ — everyone sees this");
-  }catch(e){setSS("Save failed ✗");toast("Save failed: "+e.message,"error");console.error(e);}
+    setSS(`✓ Saved ${new Date().toLocaleTimeString("en-AU")}`);
+    toast("Saved to shared cloud ✅ — everyone with the link sees this.");
+  }catch(e){
+    setSS("✗ Cloud save failed — session copy kept");
+    toast("Cloud save failed: "+e.message+". Changes kept for this session.","error");
+    console.error(e);
+  }
 }
 
-// ═══════════════════════════════════════════════════════
-//  SELECTORS
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+//  EXPORT / IMPORT
+// ════════════════════════════════════════════════════════════════
+function exportJSON(){
+  const data=JSON.stringify({flows:cloud.flows,history:cloud.history},null,2);
+  const a=document.createElement("a");
+  a.href="data:application/json,"+encodeURIComponent(data);
+  a.download=`rje-flow-${Date.now()}.json`;
+  a.click();
+  toast("Exported JSON ✓");
+}
+function importJSON(){
+  const inp=document.createElement("input");
+  inp.type="file";inp.accept=".json";
+  inp.onchange=e=>{
+    const fr=new FileReader();
+    fr.onload=ev=>{
+      try{
+        const d=JSON.parse(ev.target.result);
+        if(!d.flows)throw new Error("Invalid file — missing 'flows' key");
+        cloud=d;
+        loadCurrentOrDefault();
+        refreshAll();
+        toast("Imported ✓ — click Save to push to cloud.");
+      }catch(err){toast("Import failed: "+err.message,"error");}
+    };
+    fr.readAsText(e.target.files[0]);
+  };
+  inp.click();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PROJECT / TEMPLATE SELECTORS
+// ════════════════════════════════════════════════════════════════
 function renderTemplateSel(){
-  document.getElementById("templateSel").innerHTML=Object.entries(TEMPLATES).map(([k,t])=>`<option value="${k}" ${k===currentTemplate?"selected":""}>${t.label}</option>`).join("");
+  document.getElementById("templateSel").innerHTML=
+    Object.entries(TEMPLATES).map(([k,t])=>
+      `<option value="${k}" ${k===currentTemplate?"selected":""}>${t.label}</option>`
+    ).join("");
 }
 function renderProjectSel(){
   const prefix=currentTemplate+"::";
-  let names=Object.keys(cloud.flows).filter(k=>k.startsWith(prefix)).map(k=>k.slice(prefix.length));
-  if(!names.includes("Default")) names.unshift("Default");
+  let names=Object.keys(cloud.flows)
+    .filter(k=>k.startsWith(prefix))
+    .map(k=>k.slice(prefix.length));
+  if(!names.includes("Default"))names.unshift("Default");
   names=[...new Set(names)];
-  document.getElementById("projectSel").innerHTML=names.map(p=>`<option value="${p}" ${p===currentProject?"selected":""}>${p}</option>`).join("");
+  const sel=document.getElementById("projectSel");
+  sel.innerHTML=names.map(p=>
+    `<option value="${p}" ${p===currentProject?"selected":""}>${p}</option>`
+  ).join("");
 }
-function switchTemplate(){currentTemplate=document.getElementById("templateSel").value;currentProject="Default";loadCurrentOrDefault();refreshAll();}
-function switchProject(){currentProject=document.getElementById("projectSel").value;loadCurrentOrDefault();refreshAll();}
-async function newProject(){const n=prompt("New project name (within "+TEMPLATES[currentTemplate].label+"):");if(!n?.trim())return;currentProject=n.trim();loadDefaultsIntoView();cloud.flows[keyOf(currentTemplate,currentProject)]={main:stages,side:sb};refreshAll();await saveFlow();}
-function setSS(t){document.getElementById("saveStatus").textContent=t;document.getElementById("saveStatus2").textContent=t;}
+function switchTemplate(){
+  currentTemplate=document.getElementById("templateSel").value;
+  currentProject="Default";
+  loadCurrentOrDefault();
+  refreshAll();
+}
+function switchProject(){
+  currentProject=document.getElementById("projectSel").value;
+  loadCurrentOrDefault();
+  refreshAll();
+}
 
+// ── NEW PROJECT (works offline too) ──────────────────────────────
+async function newProject(){
+  const n=prompt(`New scenario name (within "${TEMPLATES[currentTemplate].label}"):`);
+  if(!n||!n.trim())return;
+  const name=n.trim();
+  if(name==="Default"){toast("Cannot create a scenario named 'Default' — it's reserved.","error");return;}
+  currentProject=name;
+  // Load fresh defaults into the new scenario
+  const t=TEMPLATES[currentTemplate];
+  stages=t.main();
+  sb=t.side();
+  // Register in memory immediately so it appears in dropdown
+  cloud.flows[keyOf(currentTemplate,currentProject)]={main:stages,side:sb};
+  refreshAll();
+  toast(`Scenario "${name}" created. Click Save to persist.`);
+  // Attempt cloud save (will toast if offline)
+  await saveFlow();
+}
+
+// ── DELETE PROJECT ────────────────────────────────────────────────
+async function deleteProject(){
+  if(currentProject==="Default"){toast("The Default scenario is protected and cannot be deleted.","error");return;}
+  if(!confirm(`Delete scenario "${currentProject}"? This cannot be undone.`))return;
+  const k=keyOf(currentTemplate,currentProject);
+  delete cloud.flows[k];
+  // Remove from history too
+  cloud.history=(cloud.history||[]).filter(h=>h.tkey!==k);
+  currentProject="Default";
+  loadCurrentOrDefault();
+  refreshAll();
+  toast(`Scenario deleted. Saving…`);
+  await saveFlow();
+}
+
+function setSS(t){
+  document.getElementById("saveStatus").textContent=t;
+  document.getElementById("saveStatus2").textContent=t;
+}
 function refreshAll(){
   renderProjectSel();
-  document.getElementById("sideTitle").textContent=TEMPLATES[currentTemplate].sideTitle;
-  document.getElementById("connLabel").textContent=TEMPLATES[currentTemplate].mergeLabel;
+  const tmpl=TEMPLATES[currentTemplate];
+  document.getElementById("sideTitle").textContent=tmpl.sideTitle;
+  document.getElementById("connLabel").textContent=tmpl.mergeLabel;
   render();
+  document.getElementById("headerSub").textContent=
+    `${tmpl.label} · ${currentProject}  ·  Main: ${totalDays(stages)}d  ·  Side: ${totalDays(sb)}d`;
 }
 
-// ═══════════════════════════════════════════════════════
+function confirmReset(){
+  if(!confirm("Reset this layout to built-in default? Unsaved changes will be lost."))return;
+  loadDefaultsIntoView();
+  render();
+  toast("Reset to default — click Save to keep.");
+}
+
+// ════════════════════════════════════════════════════════════════
 //  HISTORY
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 function openHistory(){
   const k=keyOf(currentTemplate,currentProject);
   const items=(cloud.history||[]).filter(h=>h.tkey===k).slice(0,20);
   let html=`<div class="modal-row"><h3>📜 History — ${TEMPLATES[currentTemplate].label} · ${currentProject}</h3><button class="xbtn" onclick="closeModal()">✕</button></div>`;
-  if(!items.length) html+='<p style="color:#888;font-size:12px">No snapshots yet. Click Save to create one.</p>';
-  else{window._hist=items;html+=items.map((it,i)=>`<div class="hist-item" onclick="restoreSnap(${i})"><div style="font-size:12px;font-weight:600;color:var(--navy)">${it.title}</div></div>`).join("");}
+  if(!items.length){html+='<p style="color:#888;font-size:12px">No snapshots yet. Click Save to create one.</p>';}
+  else{
+    window._hist=items;
+    html+=items.map((it,i)=>
+      `<div class="hist-item" onclick="restoreSnap(${i})">
+         <div style="font-size:12px;font-weight:600;color:var(--navy)">${it.title}</div>
+         <div style="font-size:10px;color:#888">Click to restore</div>
+       </div>`
+    ).join("");
+  }
   showModal(html);
 }
-function restoreSnap(i){if(!confirm("Restore this snapshot? Click Save afterwards to keep it."))return;const it=window._hist[i];stages=JSON.parse(JSON.stringify(it.main||[]));sb=JSON.parse(JSON.stringify(it.side||[]));closeModal();render();toast("Restored — click Save to keep.");}
+function restoreSnap(i){
+  if(!confirm("Restore this snapshot? Click Save afterwards to keep it."))return;
+  const it=window._hist[i];
+  stages=JSON.parse(JSON.stringify(it.main||[]));
+  sb=JSON.parse(JSON.stringify(it.side||[]));
+  closeModal();
+  render();
+  toast("Restored — click Save to keep.");
+}
 
-// ═══════════════════════════════════════════════════════
-//  SEGMENT / DURATION
-// ═══════════════════════════════════════════════════════
-function segment(list){const blocks=[];let i=0;while(i<list.length){const s=list[i];if(s.group){const items=[s];let j=i+1;while(j<list.length&&list[j].group===s.group){items.push(list[j]);j++;}blocks.push({type:"group",group:s.group,items});i=j;}else{blocks.push({type:"seq",items:[s]});i++;}}return blocks;}
-function laneSums(items){const m={},order=[];items.forEach(it=>{const k=it.lane||it.id;if(!(k in m)){m[k]=0;order.push(k);}m[k]+=it.handback?0:(+it.time||0);});return order.map(k=>({lane:k,sum:m[k],items:items.filter(it=>(it.lane||it.id)===k)}));}
-function blockDur(b){if(b.type==="seq")return b.items[0].handback?0:(+b.items[0].time||0);return Math.max(...laneSums(b.items).map(l=>l.sum),0);}
+// ════════════════════════════════════════════════════════════════
+//  DURATION LOGIC
+// ════════════════════════════════════════════════════════════════
+function segment(list){
+  const blocks=[];let i=0;
+  while(i<list.length){
+    const s=list[i];
+    if(s.group){
+      const items=[s];let j=i+1;
+      while(j<list.length&&list[j].group===s.group){items.push(list[j]);j++;}
+      blocks.push({type:"group",group:s.group,items});i=j;
+    }else{blocks.push({type:"seq",items:[s]});i++;}
+  }
+  return blocks;
+}
+function laneSums(items){
+  const m={},order=[];
+  items.forEach(it=>{
+    const k=it.lane||it.id;
+    if(!(k in m)){m[k]=0;order.push(k);}
+    m[k]+=it.handback?0:(+it.time||0);
+  });
+  return order.map(k=>({lane:k,sum:m[k],items:items.filter(it=>(it.lane||it.id)===k)}));
+}
+function blockDur(b){
+  if(b.type==="seq")return b.items[0].handback?0:(+b.items[0].time||0);
+  return Math.max(...laneSums(b.items).map(l=>l.sum),0);
+}
 function totalDays(list){return segment(list).reduce((a,b)=>a+blockDur(b),0);}
 
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 //  RENDER
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 function render(){
   renderFlow("mainFlow",stages,"main");
   renderSide();
-  document.getElementById("headerSub").textContent=`${TEMPLATES[currentTemplate].label} · ${currentProject}  ·  Main path ${totalDays(stages)}d · Side ${totalDays(sb)}d`;
 }
-function renderFlow(id,list,scope){const el=document.getElementById(id);el.innerHTML="";const blocks=segment(list);blocks.forEach((b,bi)=>{el.appendChild(renderBlock(b,list,scope));if(bi<blocks.length-1)el.appendChild(mkArrow());});}
-function renderSide(){const el=document.getElementById("sideFlow");el.innerHTML="";sb.forEach((n,i)=>{el.appendChild(mkCard(n,sb,"side"));if(i<sb.length-1)el.appendChild(mkArrow());});}
+function renderFlow(id,list,scope){
+  const el=document.getElementById(id);
+  el.innerHTML="";
+  const blocks=segment(list);
+  blocks.forEach((b,bi)=>{
+    el.appendChild(renderBlock(b,list,scope));
+    if(bi<blocks.length-1)el.appendChild(mkArrow());
+  });
+}
+function renderSide(){
+  const el=document.getElementById("sideFlow");
+  el.innerHTML="";
+  sb.forEach((n,i)=>{
+    el.appendChild(mkCard(n,sb,"side"));
+    if(i<sb.length-1)el.appendChild(mkArrow());
+  });
+}
 function renderBlock(b,list,scope){
   if(b.type==="seq")return mkCard(b.items[0],list,scope);
-  const div=document.createElement("div");div.className="par-block";div.style.cssText=`border:2px solid ${b.items[0].color}44;background:${b.items[0].color}08`;
-  const lbl=document.createElement("div");lbl.className="par-label";lbl.style.cssText=`color:${b.items[0].color};border:1px solid ${b.items[0].color}66`;
-  lbl.innerHTML=`‖ ${b.group} <span style="color:#888">(${blockDur(b)}d)</span>`;div.appendChild(lbl);
-  const lanes=document.createElement("div");lanes.className="par-lanes";
-  laneSums(b.items).forEach(ln=>{const col=document.createElement("div");col.className="lane-col";const hdr=document.createElement("div");hdr.className="lane-hdr";hdr.textContent=`${ln.lane} · ${ln.sum}d`;col.appendChild(hdr);ln.items.forEach((it,ii)=>{col.appendChild(mkCard(it,list,scope));if(ii<ln.items.length-1)col.appendChild(mkArrow());});lanes.appendChild(col);});
-  div.appendChild(lanes);return div;
+  const div=document.createElement("div");
+  div.className="par-block";
+  div.style.cssText=`border:2px solid ${b.items[0].color}44;background:${b.items[0].color}08;margin:2px 0`;
+  const lbl=document.createElement("div");
+  lbl.className="par-label";
+  lbl.style.cssText=`color:${b.items[0].color};border:1px solid ${b.items[0].color}66`;
+  lbl.innerHTML=`‖ ${b.group} <span style="color:#888;font-size:8px">(${blockDur(b)}d parallel)</span>`;
+  div.appendChild(lbl);
+  const lanes=document.createElement("div");
+  lanes.className="par-lanes";
+  laneSums(b.items).forEach(ln=>{
+    const col=document.createElement("div");
+    col.className="lane-col";
+    const hdr=document.createElement("div");
+    hdr.className="lane-hdr";
+    hdr.textContent=`${ln.lane} · ${ln.sum}d`;
+    col.appendChild(hdr);
+    ln.items.forEach((it,ii)=>{
+      col.appendChild(mkCard(it,list,scope));
+      if(ii<ln.items.length-1)col.appendChild(mkArrow());
+    });
+    lanes.appendChild(col);
+  });
+  div.appendChild(lanes);
+  return div;
 }
+
 function mkCard(node,list,scope){
-  const border=hl[node.id]?HL:node.nonValue?"#c62828":node.handback?"#2E7D32":(node.color||C.neutral);
+  const border=hl[node.id]?"#FF6F00":node.nonValue?"#c62828":node.handback?"#2E7D32":(node.color||C.neutral);
   const bg=hl[node.id]?"#FFF8E1":node.nonValue?"#FFEBEE":node.handback?"#E8F5E9":"#fff";
   const idx=list.findIndex(s=>s.id===node.id);
-  const d=document.createElement("div");d.className="card"+(scope==="side"?" side":"");d.style.cssText=`border:2px solid ${border};border-left:5px solid ${border};background:${bg}`;
-  d.innerHTML=`<div style="display:flex;align-items:flex-start;gap:5px"><span style="font-size:17px;line-height:1">${node.icon||"⚙️"}</span><div style="flex:1;min-width:0"><div class="card-title" style="color:${border}">${node.label}${node.symbol?` ${node.symbol}`:""}</div></div></div>
-    ${!node.handback?`<div class="card-meta"><span class="pill">⏱ ${node.time}d</span>${node.people&&node.people!=="—"?`<span class="pill">👷 ${node.people}</span>`:""}<span style="color:#aaa">🏢 ${node.dept||""}</span></div>`:""}
-    ${node.info?`<div class="card-info">${node.info}</div>`:""}
-    ${node.nonValue?`<div class="card-nv">🔴 Non-Added Value</div>`:""}
-    ${node.panelMerge?`<div style="font-size:8px;color:var(--teal);margin-top:2px;font-weight:700">◀ Side track merges here</div>`:""}
-    ${node.note?`<div class="card-note">📝 ${node.note}</div>`:""}
-    <div class="card-btns">
-      <button class="mini" style="background:${border}22;color:${border}" onclick="editStep('${node.id}','${scope}')">✏️</button>
-      <button class="mini" style="background:${hl[node.id]?"#FF6F0033":"#eee"};color:${hl[node.id]?HL:"#666"}" onclick="toggleHL('${node.id}')">🏳️</button>
-      <button class="mini" style="background:#E8F5E9;color:var(--green)" onclick="addStep('${scope}','${node.id}')">＋</button>
-      <button class="mini" style="background:#FFEBEE;color:var(--red)" onclick="delStep('${node.id}','${scope}')">🗑</button>
-      <div style="margin-left:auto;display:flex;gap:2px">
-        ${idx>0?`<button class="mini" style="background:#e3f2fd;color:var(--blue)" onclick="moveStep('${node.id}','${scope}',-1)">↑</button>`:""}
-        ${idx<list.length-1?`<button class="mini" style="background:#e3f2fd;color:var(--blue)" onclick="moveStep('${node.id}','${scope}',1)">↓</button>`:""}
-      </div>
-    </div>`;
+  const d=document.createElement("div");
+  d.className="card"+(scope==="side"?" side":"");
+  d.style.cssText=`border:2px solid ${border};border-left:5px solid ${border};background:${bg}`;
+  let inner=`<div class="card-head"><span class="card-icon">${node.icon||"⚙️"}</span>
+    <div style="flex:1;min-width:0"><div class="card-title" style="color:${border}">${node.label}${node.symbol?" "+node.symbol:""}</div></div></div>`;
+  if(!node.handback){
+    inner+=`<div class="card-meta"><span class="pill">⏱ ${node.time}d</span>
+      ${node.people&&node.people!=="—"?`<span class="pill">👷 ${node.people}</span>`:""}
+      ${node.dept?`<span style="color:#aaa">🏢 ${node.dept}</span>`:""}</div>`;
+  }
+  if(node.info)inner+=`<div class="card-info">ℹ ${node.info}</div>`;
+  if(node.nonValue)inner+=`<div class="card-nv">🔴 Non-Added Value</div>`;
+  if(node.panelMerge)inner+=`<div class="card-merge">◀ Side track merges here</div>`;
+  if(node.note)inner+=`<div class="card-note">📝 ${node.note}</div>`;
+  inner+=`<div class="card-btns">
+    <button class="mini" style="background:${border}22;color:${border}" onclick="editStep('${node.id}','${scope}')">✏️ Edit</button>
+    <button class="mini" style="background:${hl[node.id]?"#FF6F0033":"#eee"};color:${hl[node.id]?"#FF6F00":"#666"}" onclick="toggleHL('${node.id}')">🏳️</button>
+    <button class="mini" style="background:#E8F5E9;color:var(--green)" onclick="addStep('${scope}','${node.id}')">＋</button>
+    <button class="mini" style="background:#FFEBEE;color:var(--red)" onclick="delStep('${node.id}','${scope}')">🗑</button>
+    <div style="margin-left:auto;display:flex;gap:2px">
+      ${idx>0?`<button class="mini" style="background:#e3f2fd;color:var(--blue)" onclick="moveStep('${node.id}','${scope}',-1)">↑</button>`:""}
+      ${idx<list.length-1?`<button class="mini" style="background:#e3f2fd;color:var(--blue)" onclick="moveStep('${node.id}','${scope}',1)">↓</button>`:""}
+    </div></div>`;
+  d.innerHTML=inner;
   return d;
 }
-function mkArrow(){const d=document.createElement("div");d.className="varrow";d.innerHTML=`<div class="varrow-line"></div><span class="varrow-head">▼</span>`;return d;}
-function renderLegend(){document.getElementById("legend").innerHTML=CL.map(([k,c])=>`<span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:${c};border-radius:2px"></span>${k}</span>`).join("")+`<span style="display:flex;align-items:center;gap:3px;margin-left:8px"><span style="width:10px;height:10px;background:#FFF3E0;border:2px solid ${HL};border-radius:2px"></span>Flagged</span>`;}
 
-// ═══════════════════════════════════════════════════════
+function mkArrow(){
+  const d=document.createElement("div");
+  d.className="varrow";
+  d.innerHTML=`<div class="varrow-line"></div><span class="varrow-head">▼</span>`;
+  return d;
+}
+
+function renderLegend(){
+  document.getElementById("legend").innerHTML=
+    CL.map(([k,c])=>`<span class="leg-item"><span class="leg-dot" style="background:${c}"></span>${k}</span>`).join("")+
+    `<span class="leg-item" style="margin-left:6px"><span class="leg-dot" style="background:#FFF3E0;border:2px solid #FF6F00"></span>Flagged</span>`+
+    `<span class="leg-item"><span class="leg-dot" style="background:#FFEBEE;border:2px solid #c62828"></span>Non-value</span>`+
+    `<span class="leg-item"><span class="leg-dot" style="background:#E8F5E9;border:2px solid #2E7D32"></span>Handback</span>`;
+}
+
+// ════════════════════════════════════════════════════════════════
 //  STEP ACTIONS
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 const getList=scope=>scope==="side"?sb:stages;
-const setList=(scope,arr)=>scope==="side"?sb=arr:stages=arr;
+const setList=(scope,arr)=>scope==="side"?(sb=arr):(stages=arr);
+
 function toggleHL(id){hl[id]=!hl[id];render();}
+
 function addStep(scope,afterId){
-  const base=scope==="side"?S({icon:"🔲",color:C.switchboard,label:"New Side Step",time:1}):S({label:"New Step",time:1});
+  const base=scope==="side"
+    ?S({icon:"🔲",color:C.switchboard,label:"New Side Step",time:1})
+    :S({label:"New Step",time:1});
   const list=[...getList(scope)];
   if(!afterId||afterId==="null")list.push(base);
   else{const i=list.findIndex(x=>x.id===afterId);list.splice(i+1,0,base);}
-  setList(scope,list);render();editStep(base.id,scope);
+  setList(scope,list);
+  render();
+  editStep(base.id,scope);
 }
-function delStep(id,scope){if(!confirm("Delete?"))return;setList(scope,getList(scope).filter(x=>x.id!==id));render();}
-function moveStep(id,scope,dir){const list=[...getList(scope)];const i=list.findIndex(x=>x.id===id);if(i<0)return;const t=i+dir;if(t<0||t>=list.length)return;[list[i],list[t]]=[list[t],list[i]];setList(scope,list);render();}
-function confirmReset(){if(!confirm("Reset THIS layout to its built-in default?"))return;loadDefaultsIntoView();render();toast("Reset — click Save to keep.");}
 
-// ═══════════════════════════════════════════════════════
+function delStep(id,scope){
+  if(!confirm("Delete this step?"))return;
+  const updated=getList(scope).filter(x=>x.id!==id);
+  setList(scope,updated);
+  render();
+}
+
+function moveStep(id,scope,dir){
+  const list=[...getList(scope)];
+  const i=list.findIndex(x=>x.id===id);
+  if(i<0)return;
+  const t=i+dir;
+  if(t<0||t>=list.length)return;
+  [list[i],list[t]]=[list[t],list[i]];
+  setList(scope,list);
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
 //  EDIT MODAL
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 function editStep(id,scope){
-  const node=getList(scope).find(x=>x.id===id);if(!node)return;
-  showModal(`<div class="modal-row"><h3 style="color:${node.color}">✏️ Edit Step</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
-    ${["label","dept","icon","time","people"].map(k=>`<div class="field"><label>${{label:"Label",dept:"Department",icon:"Icon (emoji)",time:"Duration (work days)",people:"People"}[k]}</label>
-    <input type="${k==="time"?"number":"text"}" id="ef_${k}" value="${node[k]||""}" min="0"/></div>`).join("")}
-    <div class="field"><label>Info</label><textarea id="ef_info" rows="2">${node.info||""}</textarea></div>
-    <div class="field"><label>Note (yellow)</label><textarea id="ef_note" rows="2">${node.note||""}</textarea></div>
-    <div class="seq-box"><div class="seq-title">🔀 Sequencing (main flow only)</div>
-      <div class="field"><label>Parallel group (blank = sequential)</label><input id="ef_group" value="${node.group||""}"/></div>
-      <div class="field"><label>Lane (within group)</label><input id="ef_lane" value="${node.lane||""}"/></div>
-    </div>
-    <div class="chk-row">
-      <label class="chk-label"><input type="checkbox" id="ef_hb" ${node.handback?"checked":""}> Handback (0 day)</label>
-      <label class="chk-label"><input type="checkbox" id="ef_nv" ${node.nonValue?"checked":""}> Non-added-value</label>
-      <label class="chk-label"><input type="checkbox" id="ef_pm" ${node.panelMerge?"checked":""}> Side merges here</label>
-    </div>
-    <div class="field"><label>Symbol</label><div style="display:flex;flex-wrap:wrap;gap:6px">${SYMS.map(s=>`<span class="sym ${node.symbol===s?"active":""}" onclick="pickSym(this,'${s}')">${s||"✖"}</span>`).join("")}</div></div>
-    <div class="field"><label>Colour</label><div style="display:flex;flex-wrap:wrap;gap:6px">${CL.map(([k,c])=>`<div class="col-swatch ${node.color===c?"active":""}" style="background:${c}" title="${k}" onclick="pickCol(this,'${c}')"></div>`).join("")}</div></div>
-    <div class="modal-actions">
-      <button class="tbtn danger" onclick="delStep('${id}','${scope}');closeModal()">🗑 Delete</button>
-      <div style="display:flex;gap:8px"><button class="tbtn" onclick="closeModal()">Cancel</button><button class="tbtn primary" onclick="saveEdit('${id}','${scope}')">✓ Save</button></div>
-    </div>`);
+  const node=getList(scope).find(x=>x.id===id);
+  if(!node)return;
+  let html=`<div class="modal-row"><h3 style="color:${node.color}">✏️ Edit Step</h3><button class="xbtn" onclick="closeModal()">✕</button></div>`;
+  [
+    {k:"label",label:"Label"},{k:"dept",label:"Department"},{k:"icon",label:"Icon (emoji)"},
+    {k:"time",label:"Duration (work days)",type:"number"},{k:"people",label:"People / Resources"}
+  ].forEach(f=>{
+    html+=`<div class="field"><label>${f.label}</label><input type="${f.type||"text"}" id="ef_${f.k}" value="${(node[f.k]||"").toString().replace(/"/g,'&quot;')}" min="0"/></div>`;
+  });
+  html+=`<div class="field"><label>Info (italic note)</label><textarea id="ef_info" rows="2">${node.info||""}</textarea></div>`;
+  html+=`<div class="field"><label>Note (yellow box)</label><textarea id="ef_note" rows="2">${node.note||""}</textarea></div>`;
+  html+=`<div class="seq-box"><div class="seq-title">🔀 Parallel Grouping</div>
+    <div class="field"><label>Group name (blank = sequential)</label><input id="ef_group" value="${node.group||""}"/></div>
+    <div class="field"><label>Lane (within group)</label><input id="ef_lane" value="${node.lane||""}"/></div></div>`;
+  html+=`<div class="chk-row">
+    <label class="chk-label"><input type="checkbox" id="ef_hb" ${node.handback?"checked":""}> Handback (0d)</label>
+    <label class="chk-label"><input type="checkbox" id="ef_nv" ${node.nonValue?"checked":""}> Non-added-value</label>
+    <label class="chk-label"><input type="checkbox" id="ef_pm" ${node.panelMerge?"checked":""}> Side merges here</label></div>`;
+  html+=`<div class="field"><label>Symbol</label><div style="display:flex;flex-wrap:wrap;gap:5px">
+    ${SYMS.map(s=>`<span class="sym ${node.symbol===s?"active":""}" onclick="pickSym(this,'${s}')">${s||"✖"}</span>`).join("")}</div></div>`;
+  html+=`<div class="field"><label>Colour</label><div style="display:flex;flex-wrap:wrap;gap:5px">
+    ${CL.map(([k,c])=>`<div class="col-swatch ${node.color===c?"active":""}" style="background:${c}" title="${k}" onclick="pickCol(this,'${c}')"></div>`).join("")}</div></div>`;
+  html+=`<div class="modal-actions">
+    <button class="tbtn danger" onclick="delStep('${id}','${scope}');closeModal()">🗑 Delete</button>
+    <div style="display:flex;gap:7px"><button class="tbtn" onclick="closeModal()">Cancel</button><button class="tbtn primary" onclick="saveEdit('${id}','${scope}')">✓ Save</button></div></div>`;
+  showModal(html);
   window._ec=node.color;window._es=node.symbol||"";
 }
 function pickSym(el,s){document.querySelectorAll(".sym").forEach(x=>x.classList.remove("active"));el.classList.add("active");window._es=s;}
 function pickCol(el,c){document.querySelectorAll(".col-swatch").forEach(x=>x.classList.remove("active"));el.classList.add("active");window._ec=c;}
 function saveEdit(id,scope){
-  const list=[...getList(scope)];const i=list.findIndex(x=>x.id===id);if(i<0)return;
+  const list=[...getList(scope)];
+  const i=list.findIndex(x=>x.id===id);
+  if(i<0)return;
   const v=k=>{const e=document.getElementById(k);return e?e.value.trim():"";};
-  list[i]={...list[i],label:v("ef_label"),dept:v("ef_dept"),icon:v("ef_icon"),time:Math.max(0,parseInt(v("ef_time"))||0),people:v("ef_people"),info:v("ef_info"),note:v("ef_note"),group:v("ef_group"),lane:v("ef_lane"),handback:document.getElementById("ef_hb").checked,nonValue:document.getElementById("ef_nv").checked,panelMerge:document.getElementById("ef_pm").checked,color:window._ec,symbol:window._es};
-  setList(scope,list);closeModal();render();
+  list[i]={...list[i],
+    label:v("ef_label"),dept:v("ef_dept"),icon:v("ef_icon"),
+    time:Math.max(0,parseInt(v("ef_time"))||0),people:v("ef_people"),
+    info:v("ef_info"),note:v("ef_note"),group:v("ef_group"),lane:v("ef_lane"),
+    handback:document.getElementById("ef_hb").checked,
+    nonValue:document.getElementById("ef_nv").checked,
+    panelMerge:document.getElementById("ef_pm").checked,
+    color:window._ec,symbol:window._es};
+  setList(scope,list);
+  closeModal();
+  render();
 }
 
-// ═══════════════════════════════════════════════════════
-//  SIMULATOR — adapts to whatever main+side flow is loaded
-// ═══════════════════════════════════════════════════════
-const HOL={"2025-01-01":1,"2025-01-27":1,"2025-03-10":1,"2025-04-18":1,"2025-04-19":1,"2025-04-21":1,"2025-04-25":1,"2025-06-09":1,"2025-10-06":1,"2025-12-25":1,"2025-12-26":1,"2026-01-01":1,"2026-01-26":1,"2026-03-09":1,"2026-04-03":1,"2026-04-04":1,"2026-04-06":1,"2026-04-25":1,"2026-06-08":1,"2026-10-05":1,"2026-12-25":1,"2026-12-28":1};
+// ════════════════════════════════════════════════════════════════
+//  SIMULATOR
+// ════════════════════════════════════════════════════════════════
+const HOL={
+  "2025-01-01":1,"2025-01-27":1,"2025-03-10":1,"2025-04-18":1,"2025-04-19":1,"2025-04-21":1,
+  "2025-04-25":1,"2025-06-09":1,"2025-10-06":1,"2025-12-25":1,"2025-12-26":1,
+  "2026-01-01":1,"2026-01-26":1,"2026-03-09":1,"2026-04-03":1,"2026-04-04":1,
+  "2026-04-06":1,"2026-04-25":1,"2026-06-08":1,"2026-10-05":1,"2026-12-25":1,"2026-12-28":1,
+  "2027-01-01":1,"2027-01-26":1,"2027-03-08":1,"2027-04-02":1,"2027-04-03":1,
+  "2027-04-05":1,"2027-04-25":1,"2027-06-14":1,"2027-10-04":1,"2027-12-25":1,"2027-12-28":1,
+};
 function isoL(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
 function isWD(d,h){const g=d.getDay();if(g===0||g===6)return false;if(h&&HOL[isoL(d)])return false;return true;}
+function calcFinish(startStr,totalWD,useHol){
+  let d=new Date(startStr+"T00:00:00");
+  while(!isWD(d,useHol))d.setDate(d.getDate()+1);
+  let n=1;
+  while(n<totalWD){d.setDate(d.getDate()+1);if(isWD(d,useHol))n++;}
+  return d;
+}
+
 function openSim(){
-  const total=totalDays(stages);const sideTotal=totalDays(sb);
-  const blocks=segment(stages);let ps=0;for(const b of blocks){if(b.items.some(it=>it.panelMerge))break;ps+=blockDur(b);}
-  const sideLate=sideTotal-ps;const nv=stages.filter(s=>s.nonValue).reduce((a,s)=>a+(+s.time||0),0);
-  let acc=0;const rows=segment(stages).map(b=>{const d=blockDur(b);const s=acc;acc+=d;return{label:b.type==="seq"?b.items[0].label:`${b.group} ‖ ${laneSums(b.items).map(l=>l.lane).join("/")}`,d,s,col:b.items[0].color,nv:b.items.some(it=>it.nonValue)};}).filter(r=>r.d>0);
-  showModal(`<div class="modal-row"><h3 style="color:var(--navy)">🧮 Simulator — ${TEMPLATES[currentTemplate].label} · ${currentProject}</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
-    <div class="field"><label>Start date</label><input type="date" id="simS" value="${new Date().toISOString().split('T')[0]}" oninput="updSim(${total})"/></div>
-    <label class="chk-label" style="margin-bottom:10px"><input type="checkbox" id="simH" checked onchange="updSim(${total})"> Exclude SA public holidays</label>
-    <div class="stat-grid">
-      <div class="stat" style="background:#E8EAF6"><div style="font-size:9px;font-weight:600;color:var(--navy)">⏱ Main Path</div><div style="font-size:18px;font-weight:700;color:var(--navy)">${total}d</div></div>
-      <div class="stat" style="background:#E8F5E9"><div style="font-size:9px;font-weight:600;color:var(--green)">🏁 Finish</div><div style="font-size:18px;font-weight:700;color:var(--green)" id="simFin">—</div></div>
-      <div class="stat" style="background:#FFEBEE"><div style="font-size:9px;font-weight:600;color:var(--red)">🔴 Non-Value</div><div style="font-size:18px;font-weight:700;color:var(--red)">${nv}d</div></div>
-    </div>
-    <div style="border-radius:9px;padding:9px;margin-bottom:12px;font-size:11px;background:${sideLate>0?"#FFEBEE":"#E8F5E9"};border:1px solid ${sideLate>0?"#ef9a9a":"#a5d6a7"};color:${sideLate>0?"#b71c1c":"#1b5e20"}">
-      ${TEMPLATES[currentTemplate].sideTitle}: <b>${sideTotal}d</b> · merges at main-flow day ${ps} · ${sideLate>0?`⚠️ <b>${sideLate}d short</b> — start the side track earlier`:`✅ <b>${-sideLate}d to spare</b>`}
-    </div>
-    <div style="font-weight:700;font-size:12px;margin-bottom:6px">📊 Critical-Path Gantt</div>
-    <div style="max-height:240px;overflow-y:auto">${rows.map(t=>`<div class="gantt-row"><div class="gantt-label">${t.nv?"🔴 ":""}${t.label}</div><div class="gantt-bg"><div class="gantt-bar" style="left:${(t.s/total*100).toFixed(1)}%;width:${Math.max(t.d/total*100,.6).toFixed(1)}%;background:${t.col}"></div></div><div style="font-size:9px;color:#555;min-width:26px;text-align:right">${t.d}d</div></div>`).join("")}</div>`,true,true);
+  const total=totalDays(stages);
+  const sideTotal=totalDays(sb);
+  const blocks=segment(stages);
+  let ps=0;
+  for(const b of blocks){if(b.items.some(it=>it.panelMerge))break;ps+=blockDur(b);}
+  const sideLate=sideTotal-ps;
+  const nv=stages.filter(s=>s.nonValue).reduce((a,s)=>a+(+s.time||0),0);
+  let acc=0;
+  const rows=segment(stages).map(b=>{
+    const d=blockDur(b);const s=acc;acc+=d;
+    return{label:b.type==="seq"?b.items[0].label:`‖ ${b.group}: ${laneSums(b.items).map(l=>l.lane).join("/")}`,
+      d,s,col:b.items[0].color,nv:b.items.some(it=>it.nonValue)};
+  }).filter(r=>r.d>0);
+  const today=new Date().toISOString().split("T")[0];
+  let html=`<div class="modal-row"><h3 style="color:var(--navy)">🧮 Schedule Simulator</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
+  <div style="font-size:11px;color:#666;margin-bottom:10px">${TEMPLATES[currentTemplate].label} · <b>${currentProject}</b></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end">
+    <div class="field" style="margin:0;flex:1;min-width:150px"><label>📅 Start date</label>
+      <input type="date" id="simS" value="${today}" oninput="updSim(${total})"/></div>
+    <label class="chk-label" style="padding-bottom:2px">
+      <input type="checkbox" id="simH" checked onchange="updSim(${total})"> Exclude SA public holidays</label>
+  </div>
+  <div class="stat-grid">
+    <div class="stat" style="background:#E8EAF6"><div class="stat-lbl" style="color:var(--navy)">⏱ Main Path</div><div class="stat-val" style="color:var(--navy)">${total}d</div></div>
+    <div class="stat" style="background:#E8F5E9"><div class="stat-lbl" style="color:var(--green)">🏁 Finish Date</div><div class="stat-val" style="color:var(--green);font-size:13px" id="simFin">—</div></div>
+    <div class="stat" style="background:#FFEBEE"><div class="stat-lbl" style="color:var(--red)">🔴 Non-Value</div><div class="stat-val" style="color:var(--red)">${nv}d</div></div>
+    <div class="stat" style="background:#FFF8E1"><div class="stat-lbl" style="color:#E65100">📦 Side Track</div><div class="stat-val" style="color:#E65100">${sideTotal}d</div></div>
+  </div>
+  <div class="alert-box" style="background:${sideLate>0?"#FFEBEE":"#E8F5E9"};border:1px solid ${sideLate>0?"#ef9a9a":"#a5d6a7"};color:${sideLate>0?"#b71c1c":"#1b5e20"}">
+    <b>Side Track (${TEMPLATES[currentTemplate].sideTitle.replace("\n"," ")}):</b> ${sideTotal}d total ·
+    Merges at main-flow day <b>${ps}</b> ·
+    ${sideLate>0?`⚠️ <b>Side track is ${sideLate}d short</b> — start it ${sideLate} work days earlier`
+               :`✅ <b>${Math.abs(sideLate)}d to spare</b> — side track finishes before it's needed`}
+  </div>
+  <div style="font-weight:700;font-size:12px;margin-bottom:7px;color:var(--navy)">📊 Critical-Path Gantt</div>
+  <div style="max-height:260px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:7px">
+    ${rows.map(r=>`<div class="gantt-row">
+      <div class="gantt-label">${r.nv?"🔴 ":""}${r.label}</div>
+      <div class="gantt-bg"><div class="gantt-bar" style="left:${(r.s/total*100).toFixed(1)}%;width:${Math.max(r.d/total*100,.6).toFixed(1)}%;background:${r.col}"></div></div>
+      <div style="font-size:9px;color:#666;min-width:26px;text-align:right">${r.d}d</div>
+    </div>`).join("")}
+  </div>`;
+  showModal(html,true,true);
   setTimeout(()=>updSim(total),50);
 }
-function updSim(total){const sv=document.getElementById("simS")?.value;if(!sv)return;const h=document.getElementById("simH")?.checked;let d=new Date(sv+"T00:00:00");while(!isWD(d,h))d.setDate(d.getDate()+1);let n=1;while(n<total){d.setDate(d.getDate()+1);if(isWD(d,h))n++;}const el=document.getElementById("simFin");if(el)el.textContent=d.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});}
+function updSim(total){
+  const sv=document.getElementById("simS")?.value;if(!sv)return;
+  const useHol=document.getElementById("simH")?.checked;
+  const fin=calcFinish(sv,total,useHol);
+  const el=document.getElementById("simFin");
+  if(el)el.textContent=fin.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
+}
 
-// ═══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 //  MODAL & TOAST
-// ═══════════════════════════════════════════════════════
-function showModal(html,cls=true,wide=false){document.getElementById("modalRoot").innerHTML=`<div class="overlay" ${cls?'onclick="closeModal()"':''}><div class="modal" style="${wide?"width:min(96vw,780px)":""}" onclick="event.stopPropagation()">${html}</div></div>`;}
+// ════════════════════════════════════════════════════════════════
+function showModal(html,cls=true,wide=false){
+  document.getElementById("modalRoot").innerHTML=
+    `<div class="overlay" ${cls?'onclick="closeModal()"':''}>
+       <div class="modal" style="${wide?"width:min(96vw,820px)":""}" onclick="event.stopPropagation()">${html}</div>
+     </div>`;
+}
 function closeModal(){document.getElementById("modalRoot").innerHTML="";}
 let _tt;
-function toast(msg,type="ok"){const el=document.getElementById("toast");el.textContent=msg;el.style.background=type==="error"?"#c62828":type==="info"?"#1565C0":"#323232";el.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove("show"),3500);}
+function toast(msg,type="ok"){
+  const el=document.getElementById("toast");
+  el.textContent=msg;
+  el.style.background=type==="error"?"#c62828":type==="info"?"#1565C0":"#323232";
+  el.classList.add("show");
+  clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove("show"),4500);
+}
 
-// GO
+// ── BOOT ──
 start();
 </script>
 </body>
