@@ -4,13 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Switchroom Build Flow</title>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js" defer></script>
-  <style>
-  :root{--navy:#1a237e;--blue:#1565C0;--teal:#00838F;--green:#2E7D32;--orange:#EF6C00;--red:#c62828;--purple:#6A1B9A;--grey:#607D8B;--hl:#FF6F00;}
+<style>
+  :root{--navy:#1a237e;--blue:#1565C0;--teal:#00838F;--green:#2E7D32;--red:#c62828;--hl:#FF6F00;}
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
   body{background:#F5F5F5;min-height:100vh}
   #header{background:var(--navy);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
-  #header h1{font-size:15px;font-weight:700}
   .sub{font-size:10px;opacity:.8;margin-top:2px}
   .hbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .hbtn{padding:5px 13px;border-radius:20px;border:1px solid rgba(255,255,255,.5);cursor:pointer;font-size:11px;font-weight:700;background:transparent;color:#fff}
@@ -75,37 +73,20 @@
   .hist-item:hover{background:#f5f5f5}
   #toast{position:fixed;bottom:20px;right:20px;background:#323232;color:#fff;padding:10px 18px;border-radius:10px;font-size:12px;z-index:9999;display:none;box-shadow:0 4px 12px rgba(0,0,0,.3)}
   #toast.show{display:block}
+  #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:12px;color:#555}
+  .spinner{width:40px;height:40px;border:4px solid #e0e0e0;border-top-color:var(--navy);border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
   @media print{#header,#toolbar,#legend,.card-btns,#sbtrack-header button{display:none!important}body{background:#fff}}
 </style>
 </head>
 <body>
 
-<!-- ██████████ CONFIG — FILL IN YOUR VALUES ██████████ -->
-<script>
-const CONFIG = {
-  // ↓↓↓ REPLACE THIS with your full Client ID from Azure AD ↓↓↓
-  clientId: "c12cdad0-97a3-4044-b6d6-4173352dce5b",
-
-  // ↓ This is correct — already filled in for you ↓
-  tenantId: "489d9b9a-da3d-470c-aac0-b41b3641838b",
-
-  // ↓ This is correct — already filled in for you ↓
-  spSiteUrl: "https://rje.sharepoint.com/sites/4508-LonsdaleProjectControlsProjectManagement",
-
-  // ↓ These match the lists you created — do not change ↓
-  listName:        "SwitchroomFlowData",
-  historyListName: "SwitchroomFlowHistory",
-};
-</script>
-<!-- ██████████ END CONFIG ██████████ -->
-
 <div id="toast"></div>
 
-<!-- HEADER -->
 <div id="header">
   <div>
     <div>🏭 Switchroom Build — Process Flow</div>
-    <div class="sub" id="headerSub">Please sign in…</div>
+    <div class="sub" id="headerSub">Loading…</div>
   </div>
   <div class="hbtns" id="headerBtns" style="display:none">
     <select id="projectSel" onchange="switchProject()"></select>
@@ -118,8 +99,14 @@ const CONFIG = {
   </div>
 </div>
 
-<!-- LOGIN -->
-<div id="loginScreen">
+<!-- Shows while MSAL loads -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div>Loading…</div>
+</div>
+
+<!-- Login screen (hidden until MSAL ready) -->
+<div id="loginScreen" style="display:none">
   <div style="font-size:48px">🏭</div>
   <h2>Switchroom Build Flow</h2>
   <p>Sign in with your RJE Global Microsoft account to access and save your team's build process.</p>
@@ -129,14 +116,13 @@ const CONFIG = {
   </button>
 </div>
 
-<!-- APP -->
 <div id="appShell" style="display:none">
   <div id="toolbar">
     <button class="tbtn primary" onclick="addStep('main',null)">＋ Add Step</button>
     <button class="tbtn success" onclick="saveFlow()">💾 Save to SharePoint</button>
     <button class="tbtn" onclick="openSim()">🧮 Simulate</button>
     <button class="tbtn" onclick="openHistory()">📜 History</button>
-    <button class="tbtn danger" onclick="confirmReset()">↺ Reset Default</button>
+    <button class="tbtn danger" onclick="confirmReset()">↺ Reset</button>
     <span id="saveStatus2" style="font-size:10px;color:#888"></span>
   </div>
   <div id="legend"></div>
@@ -153,9 +139,22 @@ const CONFIG = {
 </div>
 <div id="modalRoot"></div>
 
+<!-- ✅ MSAL loads LAST — everything below runs only after it's ready -->
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <script>
 // ══════════════════════════════════════
-//  COLOURS & SYMBOLS
+//  CONFIG — your values
+// ══════════════════════════════════════
+const CONFIG = {
+  clientId:  "c12cdad0-97a3-4044-b6d6-4173352dce5b",
+  tenantId:  "489d9b9a-da3d-470c-aac0-b41b3641838b",
+  spSiteUrl: "https://rje.sharepoint.com/sites/4508-LonsdaleProjectControlsProjectManagement",
+  listName:        "SwitchroomFlowData",
+  historyListName: "SwitchroomFlowHistory",
+};
+
+// ══════════════════════════════════════
+//  COLOURS & DATA
 // ══════════════════════════════════════
 const C={pm:"#4E342E",steel:"#78909C",baseframe:"#5C6BC0",wall:"#26A69A",roof:"#EF6C00",
   paint:"#AB47BC",pad:"#e53935",construction:"#1565C0",electrical:"#2E7D32",
@@ -164,60 +163,89 @@ const HL="#FF6F00";
 const CL=Object.entries(C);
 const SYMS=["","⚠️","🔴","✅","🔶","📌","❗","💡","🚧","⏳","🔒","🔥"];
 let UID=1000; const nid=()=>"s"+(++UID);
-
-// ══════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════
 let stages=[],sb=[],hl={},currentProject="Default",projects=["Default"],spToken=null;
+let msalInstance=null;
 
 // ══════════════════════════════════════
-//  MSAL  — only User.Read needed now
+//  INIT — runs after MSAL script loads
 // ══════════════════════════════════════
-const msal_ = new msal.PublicClientApplication({
-  auth:{
-    clientId: CONFIG.clientId,
-    authority:`https://login.microsoftonline.com/${CONFIG.tenantId}`,
-    redirectUri: window.location.href.split('?')[0],
-  },
-  cache:{cacheLocation:"sessionStorage"}
-});
+function initApp(){
+  try{
+    msalInstance = new msal.PublicClientApplication({
+      auth:{
+        clientId: CONFIG.clientId,
+        authority:`https://login.microsoftonline.com/${CONFIG.tenantId}`,
+        redirectUri: window.location.href.split('?')[0].split('#')[0],
+      },
+      cache:{cacheLocation:"sessionStorage",storeAuthStateInCookie:true}
+    });
 
-// SharePoint REST needs this specific scope — no admin consent required
-const SP_SCOPE = [`${CONFIG.spSiteUrl}/.default`];
-// Fallback scope that definitely doesn't need admin
-const SCOPES = ["User.Read", `${CONFIG.spSiteUrl}/AllSites.Write`];
+    msalInstance.handleRedirectPromise().then(res=>{
+      document.getElementById("loading").style.display="none";
+      if(res){
+        onSignedIn(res.account);
+      } else {
+        const accounts = msalInstance.getAllAccounts();
+        if(accounts.length){
+          onSignedIn(accounts[0]);
+        } else {
+          document.getElementById("loginScreen").style.display="flex";
+        }
+      }
+    }).catch(e=>{
+      document.getElementById("loading").style.display="none";
+      document.getElementById("loginScreen").style.display="flex";
+      console.error("Redirect error:",e);
+    });
 
+  }catch(e){
+    document.getElementById("loading").innerHTML=`<div style="color:red;padding:20px;text-align:center">
+      ❌ Init error: ${e.message}<br><br>
+      <small>Check browser console for details</small>
+    </div>`;
+    console.error("Init error:",e);
+  }
+}
+
+// ✅ This is the KEY fix — MSAL script is already loaded by now
+// so we can safely call initApp immediately
+initApp();
+
+// ══════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════
 async function signIn(){
   try{
-    // Try popup login
-    const res = await msal_.loginPopup({scopes:["User.Read"]});
+    document.getElementById("loginBtn").textContent="Signing in…";
+    const res = await msalInstance.loginPopup({scopes:["User.Read"]});
     await onSignedIn(res.account);
   }catch(e){
+    document.getElementById("loginBtn").innerHTML=`<svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
     toast("Sign-in error: "+e.message,"error");
     console.error(e);
   }
 }
 
 async function getSpToken(){
-  const accounts = msal_.getAllAccounts();
+  if(!msalInstance) return null;
+  const accounts = msalInstance.getAllAccounts();
   if(!accounts.length) return null;
-  // SharePoint REST API uses the SharePoint resource scope
   const spResource = CONFIG.spSiteUrl.split('/').slice(0,3).join('/');
   try{
-    const res = await msal_.acquireTokenSilent({
+    const res = await msalInstance.acquireTokenSilent({
       scopes:[`${spResource}/AllSites.Write`],
       account: accounts[0]
     });
     return res.accessToken;
   }catch{
     try{
-      const res = await msal_.acquireTokenPopup({
+      const res = await msalInstance.acquireTokenPopup({
         scopes:[`${spResource}/AllSites.Write`],
         account: accounts[0]
       });
       return res.accessToken;
     }catch(e2){
-      console.warn("SP token failed, trying basic:", e2.message);
+      console.warn("SP token failed:",e2.message);
       return null;
     }
   }
@@ -225,6 +253,7 @@ async function getSpToken(){
 
 async function onSignedIn(account){
   document.getElementById("loginScreen").style.display="none";
+  document.getElementById("loading").style.display="none";
   document.getElementById("appShell").style.display="block";
   document.getElementById("headerBtns").style.display="flex";
   document.getElementById("headerSub").textContent=`Signed in as ${account.name||account.username}`;
@@ -233,210 +262,115 @@ async function onSignedIn(account){
   renderLegend();
 }
 
-// Handle page load — wait for DOM + MSAL to be fully ready
-window.addEventListener("load", ()=>{
-  msal_.handleRedirectPromise().then(res=>{
-    if(res) onSignedIn(res.account);
-    else{ const a=msal_.getAllAccounts(); if(a.length) onSignedIn(a[0]); }
-  }).catch(console.error);
-});
-
 // ══════════════════════════════════════
-//  SHAREPOINT REST API (no Graph, no admin)
+//  SHAREPOINT REST API
 // ══════════════════════════════════════
-const spBase = ()=>`${CONFIG.spSiteUrl}/_api/web/lists`;
+const spBase=()=>`${CONFIG.spSiteUrl}/_api/web/lists`;
+let _digest=null,_digestExpiry=0;
 
-async function spFetch(url, method="GET", body=null){
-  // Refresh token if needed
-  if(!spToken) spToken = await getSpToken();
-
-  const headers = {
-    "Accept":"application/json;odata=nometadata",
-    "Content-Type":"application/json;odata=nometadata",
-  };
-  if(spToken) headers["Authorization"] = `Bearer ${spToken}`;
-
-  const opts = {method, headers, credentials:"include"};
-  if(body) opts.body = JSON.stringify(body);
-
-  // Try with token first, fallback to cookie auth (works when hosted on SharePoint)
-  let res = await fetch(url, opts);
-
-  // If 401, try without Authorization header (cookie-based — works when page is ON SharePoint)
-  if(res.status===401){
-    delete headers["Authorization"];
-    // Need form digest for writes
-    if(method!=="GET"){
-      const digest = await getFormDigest();
-      if(digest) headers["X-RequestDigest"] = digest;
-    }
-    res = await fetch(url, {method, headers:{...headers}, body:body?JSON.stringify(body):undefined, credentials:"include"});
-  }
-
-  if(!res.ok){
-    const txt = await res.text();
-    throw new Error(`SharePoint error ${res.status}: ${txt.slice(0,200)}`);
-  }
-  if(res.status===204) return null;
-  return res.json();
-}
-
-let _digest=null, _digestExpiry=0;
 async function getFormDigest(){
   if(_digest && Date.now()<_digestExpiry) return _digest;
   try{
-    const r = await fetch(`${CONFIG.spSiteUrl}/_api/contextinfo`,{
+    const r=await fetch(`${CONFIG.spSiteUrl}/_api/contextinfo`,{
       method:"POST",
       headers:{"Accept":"application/json;odata=nometadata","Content-Type":"application/json"},
       credentials:"include"
     });
-    const d = await r.json();
-    _digest = d.FormDigestValue;
-    _digestExpiry = Date.now() + (d.FormDigestTimeoutSeconds||1700)*900;
+    const d=await r.json();
+    _digest=d.FormDigestValue;
+    _digestExpiry=Date.now()+(d.FormDigestTimeoutSeconds||1700)*900;
     return _digest;
-  }catch(e){ console.warn("Digest error:",e); return null; }
+  }catch(e){console.warn("Digest:",e);return null;}
 }
 
 async function spGetItems(listName){
   const url=`${spBase()}/getbytitle('${listName}')/items?$select=Id,Title,FlowData,SBData,ProjectName,FlowSnapshot,SBSnapshot&$top=100`;
-  const d = await spFetch(url);
-  return d?.value||[];
+  const headers={"Accept":"application/json;odata=nometadata","Content-Type":"application/json;odata=nometadata"};
+  if(spToken) headers["Authorization"]=`Bearer ${spToken}`;
+  const r=await fetch(url,{headers,credentials:"include"});
+  if(!r.ok) throw new Error("GET failed "+r.status);
+  const d=await r.json(); return d?.value||[];
 }
 
-async function spCreateItem(listName, fields){
-  const digest = await getFormDigest();
-  const headers={
-    "Accept":"application/json;odata=nometadata",
-    "Content-Type":"application/json;odata=nometadata",
-    "X-RequestDigest": digest||"",
-  };
+async function spCreateItem(listName,fields){
+  const digest=await getFormDigest();
+  const headers={"Accept":"application/json;odata=nometadata","Content-Type":"application/json;odata=nometadata","X-RequestDigest":digest||""};
   if(spToken) headers["Authorization"]=`Bearer ${spToken}`;
-  const res = await fetch(`${spBase()}/getbytitle('${listName}')/items`,{
-    method:"POST", headers, credentials:"include",
-    body: JSON.stringify(fields)
+  const r=await fetch(`${spBase()}/getbytitle('${listName}')/items`,{
+    method:"POST",headers,credentials:"include",body:JSON.stringify(fields)
   });
-  if(!res.ok) throw new Error("Create failed: "+res.status);
-  return res.json();
+  if(!r.ok) throw new Error("POST failed "+r.status);
+  return r.json();
 }
 
-async function spUpdateItem(listName, itemId, fields){
-  const digest = await getFormDigest();
-  const headers={
-    "Accept":"application/json;odata=nometadata",
-    "Content-Type":"application/json;odata=nometadata",
-    "X-RequestDigest": digest||"",
-    "X-HTTP-Method":"MERGE",
-    "IF-MATCH":"*",
-  };
+async function spUpdateItem(listName,itemId,fields){
+  const digest=await getFormDigest();
+  const headers={"Accept":"application/json;odata=nometadata","Content-Type":"application/json;odata=nometadata",
+    "X-RequestDigest":digest||"","X-HTTP-Method":"MERGE","IF-MATCH":"*"};
   if(spToken) headers["Authorization"]=`Bearer ${spToken}`;
-  const res = await fetch(`${spBase()}/getbytitle('${listName}')/items(${itemId})`,{
-    method:"POST", headers, credentials:"include",
-    body: JSON.stringify(fields)
+  const r=await fetch(`${spBase()}/getbytitle('${listName}')/items(${itemId})`,{
+    method:"POST",headers,credentials:"include",body:JSON.stringify(fields)
   });
-  if(!res.ok && res.status!==204) throw new Error("Update failed: "+res.status);
+  if(!r.ok && r.status!==204) throw new Error("PATCH failed "+r.status);
 }
 
 // ══════════════════════════════════════
 //  SAVE / LOAD
 // ══════════════════════════════════════
-function setSS(t){
-  document.getElementById("saveStatus").textContent=t;
-  document.getElementById("saveStatus2").textContent=t;
-}
+function setSS(t){document.getElementById("saveStatus").textContent=t;document.getElementById("saveStatus2").textContent=t;}
 
 async function saveFlow(){
   setSS("Saving…");
   try{
-    const items = await spGetItems(CONFIG.listName);
-    const existing = items.find(i=>i.Title===currentProject);
-    const fields={
-      Title: currentProject,
-      FlowData: JSON.stringify(stages),
-      SBData: JSON.stringify(sb),
-      ProjectName: currentProject,
-    };
-    if(existing) await spUpdateItem(CONFIG.listName, existing.Id, fields);
-    else          await spCreateItem(CONFIG.listName, fields);
-
-    // History snapshot
+    const items=await spGetItems(CONFIG.listName);
+    const existing=items.find(i=>i.Title===currentProject);
+    const fields={Title:currentProject,FlowData:JSON.stringify(stages),SBData:JSON.stringify(sb),ProjectName:currentProject};
+    if(existing) await spUpdateItem(CONFIG.listName,existing.Id,fields);
+    else await spCreateItem(CONFIG.listName,fields);
     await spCreateItem(CONFIG.historyListName,{
       Title:`${currentProject} — ${new Date().toLocaleString("en-AU")}`,
-      FlowSnapshot: JSON.stringify(stages),
-      SBSnapshot: JSON.stringify(sb),
-      ProjectName: currentProject,
+      FlowSnapshot:JSON.stringify(stages),SBSnapshot:JSON.stringify(sb),ProjectName:currentProject
     });
-
     setSS(`Saved ✓ ${new Date().toLocaleTimeString("en-AU")}`);
     toast("Saved to SharePoint ✅");
-  }catch(e){
-    setSS("Save failed ✗");
-    toast("Save failed: "+e.message,"error");
-    console.error(e);
-  }
+  }catch(e){setSS("Save failed ✗");toast("Save failed: "+e.message,"error");console.error(e);}
 }
 
 async function loadFlow(){
   setSS("Loading…");
   try{
-    const items = await spGetItems(CONFIG.listName);
+    const items=await spGetItems(CONFIG.listName);
     const names=[...new Set(items.map(i=>i.Title||"Default"))];
-    projects = names.length ? names : ["Default"];
+    projects=names.length?names:["Default"];
     renderProjectSel();
-
-    const item = items.find(i=>i.Title===currentProject)||items[0];
-    if(item?.FlowData){
-      stages=JSON.parse(item.FlowData);
-      sb=JSON.parse(item.SBData||"[]");
-      currentProject=item.Title||"Default";
-    } else {
-      stages=defaultStages(); sb=defaultSB();
-    }
-    render();
-    setSS(`Loaded ✓ ${new Date().toLocaleTimeString("en-AU")}`);
+    const item=items.find(i=>i.Title===currentProject)||items[0];
+    if(item?.FlowData){stages=JSON.parse(item.FlowData);sb=JSON.parse(item.SBData||"[]");currentProject=item.Title||"Default";}
+    else{stages=defaultStages();sb=defaultSB();}
+    render(); setSS(`Loaded ✓ ${new Date().toLocaleTimeString("en-AU")}`);
   }catch(e){
-    console.warn("Load error:",e);
-    stages=defaultStages(); sb=defaultSB();
-    render();
-    setSS("Using defaults — SharePoint connection pending");
-    toast("Tip: App works best when opened from your SharePoint page","info");
+    console.warn("Load:",e);stages=defaultStages();sb=defaultSB();render();
+    setSS("Using defaults — will save to SharePoint when you click Save");
   }
 }
 
-function renderProjectSel(){
-  const s=document.getElementById("projectSel");
-  s.innerHTML=projects.map(p=>`<option value="${p}" ${p===currentProject?"selected":""}>${p}</option>`).join("");
-}
-function switchProject(){ currentProject=document.getElementById("projectSel").value; loadFlow(); }
-async function newProject(){
-  const n=prompt("New project name:"); if(!n?.trim()) return;
-  currentProject=n.trim(); stages=defaultStages(); sb=defaultSB();
-  projects.push(currentProject); renderProjectSel(); render(); await saveFlow();
-}
+function renderProjectSel(){const s=document.getElementById("projectSel");s.innerHTML=projects.map(p=>`<option value="${p}" ${p===currentProject?"selected":""}>${p}</option>`).join("");}
+function switchProject(){currentProject=document.getElementById("projectSel").value;loadFlow();}
+async function newProject(){const n=prompt("New project name:");if(!n?.trim())return;currentProject=n.trim();stages=defaultStages();sb=defaultSB();projects.push(currentProject);renderProjectSel();render();await saveFlow();}
 
 // ══════════════════════════════════════
 //  HISTORY
 // ══════════════════════════════════════
 async function openHistory(){
-  showModal(`<div class="modal-row"><h3>📜 History — ${currentProject}</h3><button class="xbtn" onclick="closeModal()">✕</button></div><div id="histList"><p style="color:#888;font-size:12px">Loading…</p></div>`);
+  showModal(`<div class="modal-row"><h3>📜 History</h3><button class="xbtn" onclick="closeModal()">✕</button></div><div id="histList"><p style="color:#888;font-size:12px">Loading…</p></div>`);
   try{
-    const items=(await spGetItems(CONFIG.historyListName))
-      .filter(i=>i.ProjectName===currentProject)
-      .sort((a,b)=>b.Id-a.Id).slice(0,20);
+    const items=(await spGetItems(CONFIG.historyListName)).filter(i=>i.ProjectName===currentProject).sort((a,b)=>b.Id-a.Id).slice(0,20);
     const el=document.getElementById("histList");
     if(!items.length){el.innerHTML='<p style="color:#888;font-size:12px">No snapshots yet.</p>';return;}
     window._hist=items;
-    el.innerHTML=items.map((it,i)=>`<div class="hist-item" onclick="restoreSnap(${i})">
-      <div style="font-size:12px;font-weight:600;color:var(--navy)">${it.Title}</div>
-    </div>`).join("");
+    el.innerHTML=items.map((it,i)=>`<div class="hist-item" onclick="restoreSnap(${i})"><div style="font-size:12px;font-weight:600;color:var(--navy)">${it.Title}</div></div>`).join("");
   }catch(e){document.getElementById("histList").innerHTML=`<p style="color:red;font-size:12px">${e.message}</p>`;}
 }
-
-function restoreSnap(i){
-  if(!confirm("Restore this snapshot?")) return;
-  stages=JSON.parse(window._hist[i].FlowSnapshot||"[]");
-  sb=JSON.parse(window._hist[i].SBSnapshot||"[]");
-  closeModal(); render(); toast("Restored — click Save to keep.");
-}
+function restoreSnap(i){if(!confirm("Restore?"))return;stages=JSON.parse(window._hist[i].FlowSnapshot||"[]");sb=JSON.parse(window._hist[i].SBSnapshot||"[]");closeModal();render();toast("Restored — click Save to keep.");}
 
 // ══════════════════════════════════════
 //  DEFAULT DATA
@@ -493,84 +427,41 @@ function defaultSB(){return[
 ];}
 
 // ══════════════════════════════════════
-//  SEGMENTATION
+//  SEGMENT / DURATION
 // ══════════════════════════════════════
 function segment(list){
-  const blocks=[]; let i=0;
+  const blocks=[];let i=0;
   while(i<list.length){
     const s=list[i];
-    if(s.group){
-      const items=[s]; let j=i+1;
-      while(j<list.length&&list[j].group===s.group){items.push(list[j]);j++;}
-      blocks.push({type:"group",group:s.group,items}); i=j;
-    } else {blocks.push({type:"seq",items:[s]});i++;}
+    if(s.group){const items=[s];let j=i+1;while(j<list.length&&list[j].group===s.group){items.push(list[j]);j++;}blocks.push({type:"group",group:s.group,items});i=j;}
+    else{blocks.push({type:"seq",items:[s]});i++;}
   }
   return blocks;
 }
-function laneSums(items){
-  const m={},order=[];
-  items.forEach(it=>{const k=it.lane||it.id;if(!(k in m)){m[k]=0;order.push(k);}m[k]+=it.handback?0:(+it.time||0);});
-  return order.map(k=>({lane:k,sum:m[k],items:items.filter(it=>(it.lane||it.id)===k)}));
-}
-function blockDur(b){
-  if(b.type==="seq") return b.items[0].handback?0:(+b.items[0].time||0);
-  return Math.max(...laneSums(b.items).map(l=>l.sum),0);
-}
+function laneSums(items){const m={},order=[];items.forEach(it=>{const k=it.lane||it.id;if(!(k in m)){m[k]=0;order.push(k);}m[k]+=it.handback?0:(+it.time||0);});return order.map(k=>({lane:k,sum:m[k],items:items.filter(it=>(it.lane||it.id)===k)}));}
+function blockDur(b){if(b.type==="seq")return b.items[0].handback?0:(+b.items[0].time||0);return Math.max(...laneSums(b.items).map(l=>l.sum),0);}
 function totalDays(list){return segment(list).reduce((a,b)=>a+blockDur(b),0);}
 
 // ══════════════════════════════════════
 //  RENDER
 // ══════════════════════════════════════
-function render(){
-  renderFlow("mainFlow",stages,"main");
-  renderSB();
-  document.getElementById("headerSub").textContent=
-    `Project: ${currentProject}  ·  ${totalDays(stages)} work days`;
-}
-
-function renderFlow(id,list,scope){
-  const el=document.getElementById(id); el.innerHTML="";
-  const blocks=segment(list);
-  blocks.forEach((b,bi)=>{
-    el.appendChild(renderBlock(b,list,scope));
-    if(bi<blocks.length-1) el.appendChild(mkArrow());
-  });
-}
-
+function render(){renderFlow("mainFlow",stages,"main");renderSB();document.getElementById("headerSub").textContent=`Project: ${currentProject}  ·  ${totalDays(stages)} work days`;}
+function renderFlow(id,list,scope){const el=document.getElementById(id);el.innerHTML="";const blocks=segment(list);blocks.forEach((b,bi)=>{el.appendChild(renderBlock(b,list,scope));if(bi<blocks.length-1)el.appendChild(mkArrow());});}
 function renderBlock(b,list,scope){
-  if(b.type==="seq") return mkCard(b.items[0],list,scope);
-  const div=document.createElement("div");
-  div.className="par-block";
-  div.style.cssText=`border:2px solid ${b.items[0].color}44;background:${b.items[0].color}08`;
-  const lbl=document.createElement("div"); lbl.className="par-label";
-  lbl.style.cssText=`color:${b.items[0].color};border:1px solid ${b.items[0].color}66`;
-  lbl.innerHTML=`‖ ${b.group} <span style="color:#888">(${blockDur(b)}d)</span>`;
-  div.appendChild(lbl);
-  const lanes=document.createElement("div"); lanes.className="par-lanes";
-  laneSums(b.items).forEach(ln=>{
-    const col=document.createElement("div"); col.className="lane-col";
-    const hdr=document.createElement("div"); hdr.className="lane-hdr";
-    hdr.textContent=`${ln.lane} · ${ln.sum}d`; col.appendChild(hdr);
-    ln.items.forEach((it,ii)=>{
-      col.appendChild(mkCard(it,list,scope));
-      if(ii<ln.items.length-1) col.appendChild(mkArrow());
-    });
-    lanes.appendChild(col);
-  });
-  div.appendChild(lanes); return div;
+  if(b.type==="seq")return mkCard(b.items[0],list,scope);
+  const div=document.createElement("div");div.className="par-block";div.style.cssText=`border:2px solid ${b.items[0].color}44;background:${b.items[0].color}08`;
+  const lbl=document.createElement("div");lbl.className="par-label";lbl.style.cssText=`color:${b.items[0].color};border:1px solid ${b.items[0].color}66`;
+  lbl.innerHTML=`‖ ${b.group} <span style="color:#888">(${blockDur(b)}d)</span>`;div.appendChild(lbl);
+  const lanes=document.createElement("div");lanes.className="par-lanes";
+  laneSums(b.items).forEach(ln=>{const col=document.createElement("div");col.className="lane-col";const hdr=document.createElement("div");hdr.className="lane-hdr";hdr.textContent=`${ln.lane} · ${ln.sum}d`;col.appendChild(hdr);ln.items.forEach((it,ii)=>{col.appendChild(mkCard(it,list,scope));if(ii<ln.items.length-1)col.appendChild(mkArrow());});lanes.appendChild(col);});
+  div.appendChild(lanes);return div;
 }
-
 function mkCard(node,list,scope){
   const border=hl[node.id]?HL:node.nonValue?"#c62828":node.handback?"#2E7D32":(node.color||C.neutral);
   const bg=hl[node.id]?"#FFF8E1":node.nonValue?"#FFEBEE":node.handback?"#E8F5E9":"#fff";
   const idx=list.findIndex(s=>s.id===node.id);
-  const d=document.createElement("div"); d.className="card";
-  d.style.cssText=`border:2px solid ${border};border-left:5px solid ${border};background:${bg}`;
-  d.innerHTML=`
-    <div style="display:flex;align-items:flex-start;gap:5px">
-      <span style="font-size:17px;line-height:1">${node.icon||"⚙️"}</span>
-      <div style="flex:1;min-width:0"><div class="card-title" style="color:${border}">${node.label}${node.symbol?` ${node.symbol}`:""}</div></div>
-    </div>
+  const d=document.createElement("div");d.className="card";d.style.cssText=`border:2px solid ${border};border-left:5px solid ${border};background:${bg}`;
+  d.innerHTML=`<div style="display:flex;align-items:flex-start;gap:5px"><span style="font-size:17px;line-height:1">${node.icon||"⚙️"}</span><div style="flex:1;min-width:0"><div class="card-title" style="color:${border}">${node.label}${node.symbol?` ${node.symbol}`:""}</div></div></div>
     ${!node.handback?`<div class="card-meta"><span class="pill">⏱ ${node.time}d</span>${node.people&&node.people!=="—"?`<span class="pill">👷 ${node.people}</span>`:""}<span style="color:#aaa">🏢 ${node.dept||""}</span></div>`:""}
     ${node.info?`<div class="card-info">${node.info}</div>`:""}
     ${node.nonValue?`<div class="card-nv">🔴 Non-Added Value</div>`:""}
@@ -588,26 +479,9 @@ function mkCard(node,list,scope){
     </div>`;
   return d;
 }
-
-function renderSB(){
-  const el=document.getElementById("sbtrack-cards"); el.innerHTML="";
-  sb.forEach((n,i)=>{
-    el.appendChild(mkCard(n,sb,"sb"));
-    if(i<sb.length-1){const h=document.createElement("span");h.className="harrow";h.textContent="▶";el.appendChild(h);}
-  });
-}
-
-function mkArrow(){
-  const d=document.createElement("div"); d.className="varrow";
-  d.innerHTML=`<div class="varrow-line"></div><span class="varrow-head">▼</span>`;
-  return d;
-}
-
-function renderLegend(){
-  document.getElementById("legend").innerHTML=
-    CL.map(([k,c])=>`<span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:${c};border-radius:2px"></span>${k}</span>`).join("")+
-    `<span style="display:flex;align-items:center;gap:3px;margin-left:8px"><span style="width:10px;height:10px;background:#FFF3E0;border:2px solid ${HL};border-radius:2px"></span>Flagged</span>`;
-}
+function renderSB(){const el=document.getElementById("sbtrack-cards");el.innerHTML="";sb.forEach((n,i)=>{el.appendChild(mkCard(n,sb,"sb"));if(i<sb.length-1){const h=document.createElement("span");h.className="harrow";h.textContent="▶";el.appendChild(h);}});}
+function mkArrow(){const d=document.createElement("div");d.className="varrow";d.innerHTML=`<div class="varrow-line"></div><span class="varrow-head">▼</span>`;return d;}
+function renderLegend(){document.getElementById("legend").innerHTML=CL.map(([k,c])=>`<span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:${c};border-radius:2px"></span>${k}</span>`).join("")+`<span style="display:flex;align-items:center;gap:3px;margin-left:8px"><span style="width:10px;height:10px;background:#FFF3E0;border:2px solid ${HL};border-radius:2px"></span>Flagged</span>`;}
 
 // ══════════════════════════════════════
 //  STEP ACTIONS
@@ -618,24 +492,20 @@ function toggleHL(id){hl[id]=!hl[id];render();}
 function addStep(scope,afterId){
   const base=scope==="sb"?S({icon:"🔲",color:C.switchboard,label:"New SB Step",time:1}):S({label:"New Step",time:1});
   const list=[...getList(scope)];
-  if(!afterId||afterId==="null") list.push(base);
+  if(!afterId||afterId==="null")list.push(base);
   else{const i=list.findIndex(x=>x.id===afterId);list.splice(i+1,0,base);}
-  setList(scope,list); render(); editStep(base.id,scope);
+  setList(scope,list);render();editStep(base.id,scope);
 }
-function delStep(id,scope){if(!confirm("Delete this step?"))return;setList(scope,getList(scope).filter(x=>x.id!==id));render();}
-function moveStep(id,scope,dir){
-  const list=[...getList(scope)];const i=list.findIndex(x=>x.id===id);if(i<0)return;
-  const t=i+dir;if(t<0||t>=list.length)return;[list[i],list[t]]=[list[t],list[i]];setList(scope,list);render();
-}
+function delStep(id,scope){if(!confirm("Delete?"))return;setList(scope,getList(scope).filter(x=>x.id!==id));render();}
+function moveStep(id,scope,dir){const list=[...getList(scope)];const i=list.findIndex(x=>x.id===id);if(i<0)return;const t=i+dir;if(t<0||t>=list.length)return;[list[i],list[t]]=[list[t],list[i]];setList(scope,list);render();}
 function confirmReset(){if(!confirm("Reset to default?"))return;stages=defaultStages();sb=defaultSB();render();}
 
 // ══════════════════════════════════════
 //  EDIT MODAL
 // ══════════════════════════════════════
 function editStep(id,scope){
-  const node=getList(scope).find(x=>x.id===id); if(!node)return;
-  showModal(`
-    <div class="modal-row"><h3 style="color:${node.color}">✏️ Edit Step</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
+  const node=getList(scope).find(x=>x.id===id);if(!node)return;
+  showModal(`<div class="modal-row"><h3 style="color:${node.color}">✏️ Edit Step</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
     ${["label","dept","icon","time","people"].map(k=>`<div class="field"><label>${{label:"Label",dept:"Department",icon:"Icon (emoji)",time:"Duration (work days)",people:"People"}[k]}</label>
     <input type="${k==="time"?"number":"text"}" id="ef_${k}" value="${node[k]||""}" min="0"/></div>`).join("")}
     <div class="field"><label>Info</label><textarea id="ef_info" rows="2">${node.info||""}</textarea></div>
@@ -648,32 +518,20 @@ function editStep(id,scope){
       <label class="chk-label"><input type="checkbox" id="ef_hb" ${node.handback?"checked":""}> Handback marker</label>
       <label class="chk-label"><input type="checkbox" id="ef_nv" ${node.nonValue?"checked":""}> Non-added-value</label>
     </div>
-    <div class="field"><label>Symbol</label><div style="display:flex;flex-wrap:wrap;gap:6px">
-      ${SYMS.map(s=>`<span class="sym ${node.symbol===s?"active":""}" onclick="pickSym(this,'${s}')">${s||"✖"}</span>`).join("")}
-    </div></div>
-    <div class="field"><label>Colour</label><div style="display:flex;flex-wrap:wrap;gap:6px">
-      ${CL.map(([k,c])=>`<div class="col-swatch ${node.color===c?"active":""}" style="background:${c}" title="${k}" onclick="pickCol(this,'${c}')"></div>`).join("")}
-    </div></div>
+    <div class="field"><label>Symbol</label><div style="display:flex;flex-wrap:wrap;gap:6px">${SYMS.map(s=>`<span class="sym ${node.symbol===s?"active":""}" onclick="pickSym(this,'${s}')">${s||"✖"}</span>`).join("")}</div></div>
+    <div class="field"><label>Colour</label><div style="display:flex;flex-wrap:wrap;gap:6px">${CL.map(([k,c])=>`<div class="col-swatch ${node.color===c?"active":""}" style="background:${c}" title="${k}" onclick="pickCol(this,'${c}')"></div>`).join("")}</div></div>
     <div class="modal-actions">
       <button class="tbtn danger" onclick="delStep('${id}','${scope}');closeModal()">🗑 Delete</button>
-      <div style="display:flex;gap:8px">
-        <button class="tbtn" onclick="closeModal()">Cancel</button>
-        <button class="tbtn primary" onclick="saveEdit('${id}','${scope}')">✓ Save</button>
-      </div>
+      <div style="display:flex;gap:8px"><button class="tbtn" onclick="closeModal()">Cancel</button><button class="tbtn primary" onclick="saveEdit('${id}','${scope}')">✓ Save</button></div>
     </div>`);
-  window._ec=node.color; window._es=node.symbol||"";
+  window._ec=node.color;window._es=node.symbol||"";
 }
 function pickSym(el,s){document.querySelectorAll(".sym").forEach(x=>x.classList.remove("active"));el.classList.add("active");window._es=s;}
 function pickCol(el,c){document.querySelectorAll(".col-swatch").forEach(x=>x.classList.remove("active"));el.classList.add("active");window._ec=c;}
 function saveEdit(id,scope){
   const list=[...getList(scope)];const i=list.findIndex(x=>x.id===id);if(i<0)return;
   const v=k=>{const e=document.getElementById(k);return e?e.value.trim():"";};
-  list[i]={...list[i],label:v("ef_label"),dept:v("ef_dept"),icon:v("ef_icon"),
-    time:Math.max(0,parseInt(v("ef_time"))||0),people:v("ef_people"),
-    info:v("ef_info"),note:v("ef_note"),group:v("ef_group"),lane:v("ef_lane"),
-    handback:document.getElementById("ef_hb").checked,
-    nonValue:document.getElementById("ef_nv").checked,
-    color:window._ec,symbol:window._es};
+  list[i]={...list[i],label:v("ef_label"),dept:v("ef_dept"),icon:v("ef_icon"),time:Math.max(0,parseInt(v("ef_time"))||0),people:v("ef_people"),info:v("ef_info"),note:v("ef_note"),group:v("ef_group"),lane:v("ef_lane"),handback:document.getElementById("ef_hb").checked,nonValue:document.getElementById("ef_nv").checked,color:window._ec,symbol:window._es};
   setList(scope,list);closeModal();render();
 }
 
@@ -683,21 +541,12 @@ function saveEdit(id,scope){
 const HOL={"2025-01-01":1,"2025-01-27":1,"2025-03-10":1,"2025-04-18":1,"2025-04-19":1,"2025-04-21":1,"2025-04-25":1,"2025-06-09":1,"2025-10-06":1,"2025-12-25":1,"2025-12-26":1,"2026-01-01":1,"2026-01-26":1,"2026-03-09":1,"2026-04-03":1,"2026-04-04":1,"2026-04-06":1,"2026-04-25":1,"2026-06-08":1,"2026-10-05":1,"2026-12-25":1,"2026-12-28":1};
 function isoL(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
 function isWD(d,h){const g=d.getDay();if(g===0||g===6)return false;if(h&&HOL[isoL(d)])return false;return true;}
-
 function openSim(){
-  const total=totalDays(stages);
-  const sbTotal=sb.reduce((a,s)=>a+(s.handback?0:(+s.time||0)),0);
-  const blocks=segment(stages); let ps=0;
-  for(const b of blocks){if(b.items.some(it=>it.panelMerge))break;ps+=blockDur(b);}
-  const sbLate=sbTotal-ps;
-  const nv=stages.filter(s=>s.nonValue).reduce((a,s)=>a+(+s.time||0),0);
-  let acc=0;
-  const rows=segment(stages).map(b=>{const d=blockDur(b);const s=acc;acc+=d;
-    return{label:b.type==="seq"?b.items[0].label:`${b.group} ‖ ${laneSums(b.items).map(l=>l.lane).join("/")}`,
-      d,s,col:b.items[0].color,nv:b.items.some(it=>it.nonValue)};}).filter(r=>r.d>0);
-
-  showModal(`
-    <div class="modal-row"><h3 style="color:var(--navy)">🧮 Simulator — ${currentProject}</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
+  const total=totalDays(stages);const sbTotal=sb.reduce((a,s)=>a+(s.handback?0:(+s.time||0)),0);
+  const blocks=segment(stages);let ps=0;for(const b of blocks){if(b.items.some(it=>it.panelMerge))break;ps+=blockDur(b);}
+  const sbLate=sbTotal-ps;const nv=stages.filter(s=>s.nonValue).reduce((a,s)=>a+(+s.time||0),0);
+  let acc=0;const rows=segment(stages).map(b=>{const d=blockDur(b);const s=acc;acc+=d;return{label:b.type==="seq"?b.items[0].label:`${b.group} ‖ ${laneSums(b.items).map(l=>l.lane).join("/")}`,d,s,col:b.items[0].color,nv:b.items.some(it=>it.nonValue)};}).filter(r=>r.d>0);
+  showModal(`<div class="modal-row"><h3 style="color:var(--navy)">🧮 Simulator</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
     <div class="field"><label>Start date</label><input type="date" id="simS" value="${new Date().toISOString().split('T')[0]}" oninput="updSim(${total})"/></div>
     <label class="chk-label" style="margin-bottom:10px"><input type="checkbox" id="simH" checked onchange="updSim(${total})"> Exclude SA public holidays</label>
     <div class="stat-grid">
@@ -706,39 +555,20 @@ function openSim(){
       <div class="stat" style="background:#FFEBEE"><div style="font-size:9px;font-weight:600;color:var(--red)">🔴 Non-Value</div><div style="font-size:18px;font-weight:700;color:var(--red)">${nv}d</div></div>
     </div>
     <div style="border-radius:9px;padding:9px;margin-bottom:12px;font-size:11px;background:${sbLate>0?"#FFEBEE":"#E8F5E9"};border:1px solid ${sbLate>0?"#ef9a9a":"#a5d6a7"};color:${sbLate>0?"#b71c1c":"#1b5e20"}">
-      🔲 SB track: ${sbTotal}d · Panel install: day ${ps} · ${sbLate>0?`⚠️ ${sbLate}d short — start earlier`:`✅ ${-sbLate}d to spare`}
+      🔲 SB: ${sbTotal}d · Panel install: day ${ps} · ${sbLate>0?`⚠️ ${sbLate}d short`:`✅ ${-sbLate}d spare`}
     </div>
-    <div style="max-height:240px;overflow-y:auto">
-      ${rows.map(t=>`<div class="gantt-row"><div class="gantt-label">${t.nv?"🔴 ":""}${t.label}</div>
-        <div class="gantt-bg"><div class="gantt-bar" style="left:${(t.s/total*100).toFixed(1)}%;width:${Math.max(t.d/total*100,.6).toFixed(1)}%;background:${t.col}"></div></div>
-        <div style="font-size:9px;color:#555;min-width:26px;text-align:right">${t.d}d</div></div>`).join("")}
-    </div>`,true,true);
+    <div style="max-height:240px;overflow-y:auto">${rows.map(t=>`<div class="gantt-row"><div class="gantt-label">${t.nv?"🔴 ":""}${t.label}</div><div class="gantt-bg"><div class="gantt-bar" style="left:${(t.s/total*100).toFixed(1)}%;width:${Math.max(t.d/total*100,.6).toFixed(1)}%;background:${t.col}"></div></div><div style="font-size:9px;color:#555;min-width:26px;text-align:right">${t.d}d</div></div>`).join("")}</div>`,true,true);
   setTimeout(()=>updSim(total),50);
 }
-function updSim(total){
-  const sv=document.getElementById("simS")?.value; if(!sv)return;
-  const h=document.getElementById("simH")?.checked;
-  let d=new Date(sv+"T00:00:00"); while(!isWD(d,h))d.setDate(d.getDate()+1);
-  let n=1; while(n<total){d.setDate(d.getDate()+1);if(isWD(d,h))n++;}
-  const el=document.getElementById("simFin");
-  if(el)el.textContent=d.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
-}
+function updSim(total){const sv=document.getElementById("simS")?.value;if(!sv)return;const h=document.getElementById("simH")?.checked;let d=new Date(sv+"T00:00:00");while(!isWD(d,h))d.setDate(d.getDate()+1);let n=1;while(n<total){d.setDate(d.getDate()+1);if(isWD(d,h))n++;}const el=document.getElementById("simFin");if(el)el.textContent=d.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});}
 
 // ══════════════════════════════════════
 //  MODAL & TOAST
 // ══════════════════════════════════════
-function showModal(html,cls=true,wide=false){
-  document.getElementById("modalRoot").innerHTML=
-    `<div class="overlay" ${cls?'onclick="closeModal()"':''}>
-      <div class="modal" style="${wide?"width:min(96vw,780px)":""}" onclick="event.stopPropagation()">${html}</div></div>`;
-}
+function showModal(html,cls=true,wide=false){document.getElementById("modalRoot").innerHTML=`<div class="overlay" ${cls?'onclick="closeModal()"':''}><div class="modal" style="${wide?"width:min(96vw,780px)":""}" onclick="event.stopPropagation()">${html}</div></div>`;}
 function closeModal(){document.getElementById("modalRoot").innerHTML="";}
 let _tt;
-function toast(msg,type="ok"){
-  const el=document.getElementById("toast");
-  el.textContent=msg; el.style.background=type==="error"?"#c62828":type==="info"?"#1565C0":"#323232";
-  el.classList.add("show"); clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove("show"),3500);
-}
+function toast(msg,type="ok"){const el=document.getElementById("toast");el.textContent=msg;el.style.background=type==="error"?"#c62828":type==="info"?"#1565C0":"#323232";el.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove("show"),3500);}
 </script>
 </body>
 </html>
