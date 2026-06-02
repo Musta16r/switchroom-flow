@@ -3,20 +3,17 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Switchroom Build Flow</title>
+<title>RJE Build Flow</title>
 <style>
   :root{--navy:#1a237e;--blue:#1565C0;--teal:#00838F;--green:#2E7D32;--red:#c62828;--hl:#FF6F00;}
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
   body{background:#F5F5F5;min-height:100vh}
   #header{background:var(--navy);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
-  .sub{font-size:10px;opacity:.8;margin-top:2px}
+  .sub{font-size:10px;opacity:.85;margin-top:2px}
   .hbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .hbtn{padding:5px 13px;border-radius:20px;border:1px solid rgba(255,255,255,.5);cursor:pointer;font-size:11px;font-weight:700;background:transparent;color:#fff}
   .hbtn.solid{background:#fff;color:var(--navy);border-color:#fff}
-  #loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px}
-  #loginScreen h2{color:var(--navy);font-size:22px}
-  #loginScreen p{color:#555;font-size:13px;text-align:center;max-width:380px;line-height:1.6}
-  #loginBtn{padding:12px 32px;background:var(--navy);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px}
+  select.hsel{padding:5px 10px;border-radius:8px;border:none;font-size:11px;font-weight:700;background:#fff;color:var(--navy)}
   #toolbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:6px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .tbtn{padding:5px 12px;border-radius:8px;border:1px solid #ddd;cursor:pointer;font-size:11px;font-weight:600;background:#fff}
   .tbtn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -24,8 +21,20 @@
   .tbtn.success{background:#E8F5E9;color:var(--green);border-color:#a5d6a7}
   #projectSel{padding:5px 10px;border-radius:8px;border:1px solid #ddd;font-size:11px;font-weight:600}
   #legend{display:flex;gap:8px;padding:5px 12px;background:#fff;flex-wrap:wrap;border-bottom:1px solid #e0e0e0;font-size:10px}
-  #flowroot{padding:16px 14px}
+
+  /* ── WORKSPACE: side track (left) + connector + main flow (center) ── */
+  #workspace{display:flex;align-items:flex-start;justify-content:center;gap:0;padding:18px 14px}
+  #sideWrap{display:flex;flex-direction:column;align-items:center;flex-shrink:0;background:#FAFBFF;border:2px dashed var(--teal);border-radius:14px;padding:10px 12px;margin-top:30px}
+  #sideTitle{font-size:11px;font-weight:700;color:var(--teal);text-align:center;margin-bottom:8px;max-width:200px}
+  #sideFlow{display:flex;flex-direction:column;align-items:center}
+  #connector{display:flex;flex-direction:column;align-items:center;justify-content:center;align-self:center;padding:0 6px;flex-shrink:0;min-height:120px}
+  #connector .arrowline{height:2px;background:var(--teal);width:46px}
+  #connector .arrowhead{color:var(--teal);font-size:18px;margin-left:-4px}
+  #connector .clabel{font-size:9px;color:var(--teal);font-weight:700;text-align:center;margin-bottom:4px;max-width:90px}
+  #mainWrap{display:flex;flex-direction:column;align-items:center}
+
   .card{border-radius:9px;padding:8px 10px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.1);position:relative;width:210px;min-width:210px;flex-shrink:0}
+  .card.side{width:185px;min-width:185px}
   .card-title{font-weight:700;font-size:11px;line-height:1.3}
   .card-meta{font-size:9px;color:#555;display:flex;gap:5px;flex-wrap:wrap;border-top:1px solid #f0f0f0;padding-top:3px;margin-top:3px}
   .pill{background:#f5f5f5;border-radius:3px;padding:1px 4px}
@@ -42,10 +51,6 @@
   .varrow{display:flex;flex-direction:column;align-items:center;margin:1px 0;flex-shrink:0}
   .varrow-line{width:2px;height:14px;background:#90A4AE}
   .varrow-head{font-size:12px;color:#607D8B;line-height:1}
-  .harrow{font-size:13px;color:#607D8B;align-self:center}
-  #sbtrack{margin-top:18px;border-top:3px dashed var(--teal);padding-top:12px}
-  #sbtrack-header{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-  #sbtrack-cards{display:flex;justify-content:center;align-items:flex-start;gap:6px;flex-wrap:wrap}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
   .modal{background:#fff;border-radius:14px;padding:24px;max-height:92vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.35);width:460px;max-width:96vw}
   .modal-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -73,10 +78,8 @@
   .hist-item:hover{background:#f5f5f5}
   #toast{position:fixed;bottom:20px;right:20px;background:#323232;color:#fff;padding:10px 18px;border-radius:10px;font-size:12px;z-index:9999;display:none;box-shadow:0 4px 12px rgba(0,0,0,.3)}
   #toast.show{display:block}
-  #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:12px;color:#555}
-  .spinner{width:40px;height:40px;border:4px solid #e0e0e0;border-top-color:var(--navy);border-radius:50%;animation:spin 1s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @media print{#header,#toolbar,#legend,.card-btns,#sbtrack-header button{display:none!important}body{background:#fff}}
+  #setupBanner{background:#FFF8E1;border-bottom:1px solid #FFE082;padding:8px 14px;font-size:11px;color:#6D4C41;display:none}
+  @media print{#header,#toolbar,#legend,.card-btns,#setupBanner,#sideAddRow{display:none!important}body{background:#fff}}
 </style>
 </head>
 <body>
@@ -85,368 +88,287 @@
 
 <div id="header">
   <div>
-    <div>🏭 Switchroom Build — Process Flow</div>
+    <div>🏭 RJE Build Flow</div>
     <div class="sub" id="headerSub">Loading…</div>
   </div>
-  <div class="hbtns" id="headerBtns" style="display:none">
-    <select id="projectSel" onchange="switchProject()"></select>
+  <div class="hbtns">
+    <select class="hsel" id="templateSel" onchange="switchTemplate()" title="Layout / project type"></select>
+    <select id="projectSel" onchange="switchProject()" title="Project within this layout"></select>
     <button class="hbtn" onclick="newProject()">＋ Project</button>
     <button class="hbtn solid" onclick="saveFlow()">💾 Save</button>
     <button class="hbtn" onclick="openSim()">🧮 Simulate</button>
     <button class="hbtn" onclick="openHistory()">📜 History</button>
     <button class="hbtn" onclick="window.print()">🖨️ Print</button>
-    <span id="saveStatus" style="font-size:10px;opacity:.8"></span>
+    <span id="saveStatus" style="font-size:10px;opacity:.85"></span>
   </div>
 </div>
 
-<!-- Shows while MSAL loads -->
-<div id="loading">
-  <div class="spinner"></div>
-  <div>Loading…</div>
+<div id="setupBanner"></div>
+
+<div id="toolbar">
+  <button class="tbtn primary" onclick="addStep('main',null)">＋ Add Main Step</button>
+  <button class="tbtn" onclick="addStep('side',null)">＋ Add Side Step</button>
+  <button class="tbtn success" onclick="saveFlow()">💾 Save (shared)</button>
+  <button class="tbtn" onclick="openSim()">🧮 Simulate</button>
+  <button class="tbtn" onclick="openHistory()">📜 History</button>
+  <button class="tbtn danger" onclick="confirmReset()">↺ Reset Layout to Default</button>
+  <span id="saveStatus2" style="font-size:10px;color:#888"></span>
+</div>
+<div id="legend"></div>
+
+<div id="workspace">
+  <div id="sideWrap">
+    <div id="sideTitle"></div>
+    <div id="sideFlow"></div>
+    <div id="sideAddRow" style="margin-top:8px"><button class="tbtn" onclick="addStep('side',null)">＋ Add Side Step</button></div>
+  </div>
+  <div id="connector">
+    <div class="clabel" id="connLabel">links to →</div>
+    <div style="display:flex;align-items:center"><div class="arrowline"></div><div class="arrowhead">▶</div></div>
+  </div>
+  <div id="mainWrap"><div id="mainFlow"></div></div>
 </div>
 
-<!-- Login screen (hidden until MSAL ready) -->
-<div id="loginScreen" style="display:none">
-  <div style="font-size:48px">🏭</div>
-  <h2>Switchroom Build Flow</h2>
-  <p>Sign in with your RJE Global Microsoft account to access and save your team's build process.</p>
-  <button id="loginBtn" onclick="signIn()">
-    <svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
-    Sign in with Microsoft
-  </button>
-</div>
-
-<div id="appShell" style="display:none">
-  <div id="toolbar">
-    <button class="tbtn primary" onclick="addStep('main',null)">＋ Add Step</button>
-    <button class="tbtn success" onclick="saveFlow()">💾 Save to SharePoint</button>
-    <button class="tbtn" onclick="openSim()">🧮 Simulate</button>
-    <button class="tbtn" onclick="openHistory()">📜 History</button>
-    <button class="tbtn danger" onclick="confirmReset()">↺ Reset</button>
-    <span id="saveStatus2" style="font-size:10px;color:#888"></span>
-  </div>
-  <div id="legend"></div>
-  <div id="flowroot">
-    <div id="mainFlow"></div>
-    <div id="sbtrack">
-      <div id="sbtrack-header">
-        <div style="font-weight:700;font-size:11px;color:var(--teal)">🔲 SWITCHBOARD MANUFACTURING — parallel offsite track</div>
-        <button class="tbtn" onclick="addStep('sb',null)">＋ Add SB Step</button>
-      </div>
-      <div id="sbtrack-cards"></div>
-    </div>
-  </div>
-</div>
 <div id="modalRoot"></div>
 
-<!-- ✅ MSAL loads LAST — everything below runs only after it's ready -->
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <script>
-// ══════════════════════════════════════
-//  CONFIG — your values
-// ══════════════════════════════════════
-const CONFIG = {
-  clientId:  "c12cdad0-97a3-4044-b6d6-4173352dce5b",
-  tenantId:  "489d9b9a-da3d-470c-aac0-b41b3641838b",
-  spSiteUrl: "https://rje.sharepoint.com/sites/4508-LonsdaleProjectControlsProjectManagement",
-  listName:        "SwitchroomFlowData",
-  historyListName: "SwitchroomFlowHistory",
-};
+// ═══════════════════════════════════════════════════════
+//  CONFIG — shared cloud storage (JSONBin.io). Paste your values:
+// ═══════════════════════════════════════════════════════
+const BIN_ID  = "PASTE_YOUR_BIN_ID_HERE";
+const API_KEY = "PASTE_YOUR_X_MASTER_KEY_HERE";
 
-// ══════════════════════════════════════
-//  COLOURS & DATA
-// ══════════════════════════════════════
+const API = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+const HEADERS = {"Content-Type":"application/json","X-Master-Key":API_KEY,"X-Bin-Meta":"false"};
+
+// ═══════════════════════════════════════════════════════
+//  COLOURS & SYMBOLS
+// ═══════════════════════════════════════════════════════
 const C={pm:"#4E342E",steel:"#78909C",baseframe:"#5C6BC0",wall:"#26A69A",roof:"#EF6C00",
   paint:"#AB47BC",pad:"#e53935",construction:"#1565C0",electrical:"#2E7D32",
-  qa:"#6A1B9A",switchboard:"#00838F",neutral:"#607D8B"};
+  qa:"#6A1B9A",switchboard:"#00838F",neutral:"#607D8B",mech:"#00897B",fuel:"#F4511E"};
 const HL="#FF6F00";
 const CL=Object.entries(C);
 const SYMS=["","⚠️","🔴","✅","🔶","📌","❗","💡","🚧","⏳","🔒","🔥"];
 let UID=1000; const nid=()=>"s"+(++UID);
-let stages=[],sb=[],hl={},currentProject="Default",projects=["Default"],spToken=null;
-let msalInstance=null;
-
-// ══════════════════════════════════════
-//  INIT — runs after MSAL script loads
-// ══════════════════════════════════════
-function initApp(){
-  try{
-    msalInstance = new msal.PublicClientApplication({
-      auth:{
-        clientId: CONFIG.clientId,
-        authority:`https://login.microsoftonline.com/${CONFIG.tenantId}`,
-        redirectUri: window.location.href.split('?')[0].split('#')[0],
-      },
-      cache:{cacheLocation:"sessionStorage",storeAuthStateInCookie:true}
-    });
-
-    msalInstance.handleRedirectPromise().then(res=>{
-      document.getElementById("loading").style.display="none";
-      if(res){
-        onSignedIn(res.account);
-      } else {
-        const accounts = msalInstance.getAllAccounts();
-        if(accounts.length){
-          onSignedIn(accounts[0]);
-        } else {
-          document.getElementById("loginScreen").style.display="flex";
-        }
-      }
-    }).catch(e=>{
-      document.getElementById("loading").style.display="none";
-      document.getElementById("loginScreen").style.display="flex";
-      console.error("Redirect error:",e);
-    });
-
-  }catch(e){
-    document.getElementById("loading").innerHTML=`<div style="color:red;padding:20px;text-align:center">
-      ❌ Init error: ${e.message}<br><br>
-      <small>Check browser console for details</small>
-    </div>`;
-    console.error("Init error:",e);
-  }
-}
-
-// ✅ This is the KEY fix — MSAL script is already loaded by now
-// so we can safely call initApp immediately
-initApp();
-
-// ══════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════
-async function signIn(){
-  try{
-    document.getElementById("loginBtn").textContent="Signing in…";
-    const res = await msalInstance.loginPopup({scopes:["User.Read"]});
-    await onSignedIn(res.account);
-  }catch(e){
-    document.getElementById("loginBtn").innerHTML=`<svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
-    toast("Sign-in error: "+e.message,"error");
-    console.error(e);
-  }
-}
-
-async function getSpToken(){
-  if(!msalInstance) return null;
-  const accounts = msalInstance.getAllAccounts();
-  if(!accounts.length) return null;
-  const spResource = CONFIG.spSiteUrl.split('/').slice(0,3).join('/');
-  try{
-    const res = await msalInstance.acquireTokenSilent({
-      scopes:[`${spResource}/AllSites.Write`],
-      account: accounts[0]
-    });
-    return res.accessToken;
-  }catch{
-    try{
-      const res = await msalInstance.acquireTokenPopup({
-        scopes:[`${spResource}/AllSites.Write`],
-        account: accounts[0]
-      });
-      return res.accessToken;
-    }catch(e2){
-      console.warn("SP token failed:",e2.message);
-      return null;
-    }
-  }
-}
-
-async function onSignedIn(account){
-  document.getElementById("loginScreen").style.display="none";
-  document.getElementById("loading").style.display="none";
-  document.getElementById("appShell").style.display="block";
-  document.getElementById("headerBtns").style.display="flex";
-  document.getElementById("headerSub").textContent=`Signed in as ${account.name||account.username}`;
-  spToken = await getSpToken();
-  await loadFlow();
-  renderLegend();
-}
-
-// ══════════════════════════════════════
-//  SHAREPOINT REST API
-// ══════════════════════════════════════
-const spBase=()=>`${CONFIG.spSiteUrl}/_api/web/lists`;
-let _digest=null,_digestExpiry=0;
-
-async function getFormDigest(){
-  if(_digest && Date.now()<_digestExpiry) return _digest;
-  try{
-    const r=await fetch(`${CONFIG.spSiteUrl}/_api/contextinfo`,{
-      method:"POST",
-      headers:{"Accept":"application/json;odata=nometadata","Content-Type":"application/json"},
-      credentials:"include"
-    });
-    const d=await r.json();
-    _digest=d.FormDigestValue;
-    _digestExpiry=Date.now()+(d.FormDigestTimeoutSeconds||1700)*900;
-    return _digest;
-  }catch(e){console.warn("Digest:",e);return null;}
-}
-
-async function spGetItems(listName){
-  const url=`${spBase()}/getbytitle('${listName}')/items?$select=Id,Title,FlowData,SBData,ProjectName,FlowSnapshot,SBSnapshot&$top=100`;
-  const headers={"Accept":"application/json;odata=nometadata","Content-Type":"application/json;odata=nometadata"};
-  if(spToken) headers["Authorization"]=`Bearer ${spToken}`;
-  const r=await fetch(url,{headers,credentials:"include"});
-  if(!r.ok) throw new Error("GET failed "+r.status);
-  const d=await r.json(); return d?.value||[];
-}
-
-async function spCreateItem(listName,fields){
-  const digest=await getFormDigest();
-  const headers={"Accept":"application/json;odata=nometadata","Content-Type":"application/json;odata=nometadata","X-RequestDigest":digest||""};
-  if(spToken) headers["Authorization"]=`Bearer ${spToken}`;
-  const r=await fetch(`${spBase()}/getbytitle('${listName}')/items`,{
-    method:"POST",headers,credentials:"include",body:JSON.stringify(fields)
-  });
-  if(!r.ok) throw new Error("POST failed "+r.status);
-  return r.json();
-}
-
-async function spUpdateItem(listName,itemId,fields){
-  const digest=await getFormDigest();
-  const headers={"Accept":"application/json;odata=nometadata","Content-Type":"application/json;odata=nometadata",
-    "X-RequestDigest":digest||"","X-HTTP-Method":"MERGE","IF-MATCH":"*"};
-  if(spToken) headers["Authorization"]=`Bearer ${spToken}`;
-  const r=await fetch(`${spBase()}/getbytitle('${listName}')/items(${itemId})`,{
-    method:"POST",headers,credentials:"include",body:JSON.stringify(fields)
-  });
-  if(!r.ok && r.status!==204) throw new Error("PATCH failed "+r.status);
-}
-
-// ══════════════════════════════════════
-//  SAVE / LOAD
-// ══════════════════════════════════════
-function setSS(t){document.getElementById("saveStatus").textContent=t;document.getElementById("saveStatus2").textContent=t;}
-
-async function saveFlow(){
-  setSS("Saving…");
-  try{
-    const items=await spGetItems(CONFIG.listName);
-    const existing=items.find(i=>i.Title===currentProject);
-    const fields={Title:currentProject,FlowData:JSON.stringify(stages),SBData:JSON.stringify(sb),ProjectName:currentProject};
-    if(existing) await spUpdateItem(CONFIG.listName,existing.Id,fields);
-    else await spCreateItem(CONFIG.listName,fields);
-    await spCreateItem(CONFIG.historyListName,{
-      Title:`${currentProject} — ${new Date().toLocaleString("en-AU")}`,
-      FlowSnapshot:JSON.stringify(stages),SBSnapshot:JSON.stringify(sb),ProjectName:currentProject
-    });
-    setSS(`Saved ✓ ${new Date().toLocaleTimeString("en-AU")}`);
-    toast("Saved to SharePoint ✅");
-  }catch(e){setSS("Save failed ✗");toast("Save failed: "+e.message,"error");console.error(e);}
-}
-
-async function loadFlow(){
-  setSS("Loading…");
-  try{
-    const items=await spGetItems(CONFIG.listName);
-    const names=[...new Set(items.map(i=>i.Title||"Default"))];
-    projects=names.length?names:["Default"];
-    renderProjectSel();
-    const item=items.find(i=>i.Title===currentProject)||items[0];
-    if(item?.FlowData){stages=JSON.parse(item.FlowData);sb=JSON.parse(item.SBData||"[]");currentProject=item.Title||"Default";}
-    else{stages=defaultStages();sb=defaultSB();}
-    render(); setSS(`Loaded ✓ ${new Date().toLocaleTimeString("en-AU")}`);
-  }catch(e){
-    console.warn("Load:",e);stages=defaultStages();sb=defaultSB();render();
-    setSS("Using defaults — will save to SharePoint when you click Save");
-  }
-}
-
-function renderProjectSel(){const s=document.getElementById("projectSel");s.innerHTML=projects.map(p=>`<option value="${p}" ${p===currentProject?"selected":""}>${p}</option>`).join("");}
-function switchProject(){currentProject=document.getElementById("projectSel").value;loadFlow();}
-async function newProject(){const n=prompt("New project name:");if(!n?.trim())return;currentProject=n.trim();stages=defaultStages();sb=defaultSB();projects.push(currentProject);renderProjectSel();render();await saveFlow();}
-
-// ══════════════════════════════════════
-//  HISTORY
-// ══════════════════════════════════════
-async function openHistory(){
-  showModal(`<div class="modal-row"><h3>📜 History</h3><button class="xbtn" onclick="closeModal()">✕</button></div><div id="histList"><p style="color:#888;font-size:12px">Loading…</p></div>`);
-  try{
-    const items=(await spGetItems(CONFIG.historyListName)).filter(i=>i.ProjectName===currentProject).sort((a,b)=>b.Id-a.Id).slice(0,20);
-    const el=document.getElementById("histList");
-    if(!items.length){el.innerHTML='<p style="color:#888;font-size:12px">No snapshots yet.</p>';return;}
-    window._hist=items;
-    el.innerHTML=items.map((it,i)=>`<div class="hist-item" onclick="restoreSnap(${i})"><div style="font-size:12px;font-weight:600;color:var(--navy)">${it.Title}</div></div>`).join("");
-  }catch(e){document.getElementById("histList").innerHTML=`<p style="color:red;font-size:12px">${e.message}</p>`;}
-}
-function restoreSnap(i){if(!confirm("Restore?"))return;stages=JSON.parse(window._hist[i].FlowSnapshot||"[]");sb=JSON.parse(window._hist[i].SBSnapshot||"[]");closeModal();render();toast("Restored — click Save to keep.");}
-
-// ══════════════════════════════════════
-//  DEFAULT DATA
-// ══════════════════════════════════════
 function S(o){return{id:nid(),icon:"⚙️",color:C.neutral,label:"New Step",dept:"",time:1,people:"",info:"",note:"",symbol:"",group:"",lane:"",handback:false,nonValue:false,panelMerge:false,...o};}
-function defaultStages(){return[
+
+// ═══════════════════════════════════════════════════════
+//  TEMPLATES — 4 layouts, each: main flow + side (panel) flow
+//  mergeLabel = where the side track feeds into the main flow
+// ═══════════════════════════════════════════════════════
+const TEMPLATES = {
+  switchroom:{ label:"🏭 Switchroom", sideTitle:"🔲 PANEL SHOP / Switchboard Manufacturing", mergeLabel:"feeds into Panel Installation →", main:swMain, side:swSide },
+  om:        { label:"🛠️ O&M",        sideTitle:"📦 Spares & Parts Procurement",            mergeLabel:"feeds into Component Replacement →", main:omMain, side:omSide },
+  apu:       { label:"⚡ APU",          sideTitle:"🎛️ Control Panel Build",                  mergeLabel:"feeds into Controls Integration →", main:apuMain, side:apuSide },
+  kiosk:     { label:"🛖 Kiosk",        sideTitle:"🔌 Switchgear Procurement",                mergeLabel:"feeds into Equipment Install →", main:kioskMain, side:kioskSide },
+};
+
+// ── SWITCHROOM ──
+function swMain(){return[
   S({icon:"📋",color:C.pm,label:"Procurement & Long-Lead Orders",dept:"PM / Procurement",time:5,people:"1 PM",info:"Order relays, switchgear, busbars early."}),
   S({icon:"🔩",color:C.steel,label:"Steel Procurement & Cutting",dept:"Steel",time:5,people:"Steel Team"}),
   S({icon:"🏗️",color:C.baseframe,label:"Baseframe Build",dept:"Baseframe",time:7,people:"BF Team",group:"PREFAB",lane:"Baseframe"}),
   S({icon:"🎨",color:C.paint,label:"Baseframe — Paint Shop",dept:"Paint",time:3,people:"Paint Crew",group:"PREFAB",lane:"Baseframe"}),
-  S({icon:"🏠",color:C.roof,label:"Roof Trusses & H-Sections",dept:"Roof Frame",time:6,people:"2 Workers",group:"PREFAB",lane:"Roof+Spray"}),
   S({icon:"🏠",color:C.roof,label:"Roof Frame Build",dept:"Roof Frame",time:10,people:"2 Workers",group:"PREFAB",lane:"Roof+Spray"}),
   S({icon:"💨",color:C.wall,label:"GRC Spray — Walls & Roof",dept:"Spray",time:4,people:"2 Crews",group:"PREFAB",lane:"Roof+Spray"}),
-  S({icon:"🧩",color:C.wall,label:"Demould (overnight cure)",dept:"Spray",time:1,people:"Spray Crew",group:"PREFAB",lane:"Roof+Spray"}),
   S({icon:"🧱",color:C.wall,label:"Wall Frame Build",dept:"Wall Frame",time:5,people:"3 Crews",group:"PREFAB",lane:"Wall"}),
-  S({icon:"📦",color:C.pad,label:"Load & Preparation",dept:"Logistics",time:1,people:"4 Labour"}),
-  S({icon:"🚚",color:C.pad,label:"Transport to Pad (2SR)",dept:"Logistics",time:1,people:"2 Labour"}),
+  S({icon:"🚚",color:C.pad,label:"Transport to Pad",dept:"Logistics",time:1,people:"2 Labour"}),
   S({icon:"🔥",color:"#ef5350",label:"Weld BF Sections at Pad",dept:"Welding",time:7,people:"1 Welder",nonValue:true,note:"Non-added value: consider dedicated welder.",symbol:"🔴"}),
   S({icon:"🏗️",color:C.construction,label:"Building Erected",dept:"Construction",time:5,people:"4 Labour"}),
-  S({icon:"🏠",color:C.construction,label:"Underfloor Cable Ladder",dept:"Construction",time:3,people:"4 Labour"}),
-  S({icon:"⚡",color:C.electrical,label:"Secondary Equip Underfloor Cable",dept:"Electrical",time:5,people:"3 Elec",group:"PAD-A",lane:"Elec"}),
-  S({icon:"🎨",color:C.construction,label:"External Paint + Doors & Vents",dept:"Construction",time:5,people:"2 Labour",group:"PAD-A",lane:"Civil"}),
-  S({icon:"🤝",color:C.pm,label:"Handback → Construction",dept:"PM",time:0,handback:true}),
-  S({icon:"🏠",color:C.construction,label:"CF Floor Sheets",dept:"Construction",time:3,people:"3 Labour"}),
   S({icon:"⚡",color:C.electrical,label:"Building Services 1st Fix",dept:"Electrical",time:3,people:"4 Elec",group:"PAD-B",lane:"Elec"}),
   S({icon:"❄️",color:C.electrical,label:"AC Pipe Install",dept:"AC Tech",time:5,people:"1 AC Tech",group:"PAD-B",lane:"AC"}),
-  S({icon:"🤝",color:C.pm,label:"Handback → Walls / Ceiling",dept:"PM",time:0,handback:true}),
-  S({icon:"🏠",color:C.construction,label:"Insulation, Ceiling & Wall Sheets",dept:"Construction",time:10,people:"4 Labour",group:"PAD-C",lane:"Civil"}),
-  S({icon:"⚡",color:C.electrical,label:"External 2nd Fix",dept:"Electrical",time:2,people:"2 Elec",group:"PAD-C",lane:"Elec"}),
-  S({icon:"🎨",color:C.construction,label:"Internal Wall Painting",dept:"Construction",time:3,people:"2 Labour"}),
-  S({icon:"🔨",color:C.construction,label:"Floor Joints Epoxy Sealed",dept:"Construction",time:1,people:"2 Labour"}),
-  S({icon:"🟫",color:C.construction,label:"Floor Tiles Installed & Sealed",dept:"Construction",time:3,people:"4 Labour"}),
-  S({icon:"🛡️",color:C.construction,label:"Floor Protection",dept:"Construction",time:1,people:"2 Labour"}),
+  S({icon:"🏠",color:C.construction,label:"Insulation, Ceiling & Wall Sheets",dept:"Construction",time:10,people:"4 Labour"}),
+  S({icon:"🟫",color:C.construction,label:"Floor Tiles & Sealing",dept:"Construction",time:4,people:"4 Labour"}),
   S({icon:"⚡",color:C.electrical,label:"Building Services 2nd Fix",dept:"Electrical",time:5,people:"4 Elec"}),
-  S({icon:"✂️",color:C.electrical,label:"Cut Floor Penetrations",dept:"Electrical",time:2,people:"2 Elec"}),
   S({icon:"⚡",color:C.electrical,label:"HV Installation",dept:"Electrical",time:6,people:"4 Elec",group:"PANELS",lane:"HV",panelMerge:true}),
   S({icon:"🔲",color:C.electrical,label:"Protection Panel Installation",dept:"Electrical",time:6,people:"4 Elec",group:"PANELS",lane:"Protection"}),
   S({icon:"🗄️",color:C.electrical,label:"MSB Installation",dept:"Electrical",time:5,people:"4 Elec",group:"PANELS",lane:"MSB"}),
-  S({icon:"🔥",color:C.qa,label:"Fire Panel Installation",dept:"QA / Elec",time:5,people:"1",group:"PANELS",lane:"Fire"}),
-  S({icon:"🔌",color:C.electrical,label:"Cables Pulled into Panels",dept:"Electrical",time:1,people:"8 Elec"}),
-  S({icon:"✅",color:C.qa,label:"Cable Testing — Megger & Continuity",dept:"Elec / QA",time:1,people:"8"}),
-  S({icon:"🔧",color:C.electrical,label:"Cable Termination",dept:"Electrical",time:10,people:"8 Elec"}),
-  S({icon:"🏷️",color:C.electrical,label:"Labelling & Signage",dept:"Electrical",time:1,people:"1 Elec"}),
+  S({icon:"🔌",color:C.electrical,label:"Cables Pulled & Terminated",dept:"Electrical",time:11,people:"8 Elec"}),
   S({icon:"✅",color:C.qa,label:"Point-to-Point Testing & Greenline",dept:"Elec / QA",time:7,people:"4"}),
-  S({icon:"⚡",color:C.qa,label:"Power-Up & QA Checks",dept:"Elec / QA",time:2,people:"4"}),
   S({icon:"🎉",color:C.pm,label:"Commissioning & Final Handover",dept:"PM / Commissioning",time:3,people:"4"}),
 ];}
-function defaultSB(){return[
-  S({icon:"📐",color:C.switchboard,label:"Design & Long-Lead Orders",dept:"Procurement",time:30,people:"Procurement"}),
-  S({icon:"🔩",color:C.switchboard,label:"Mechanical Installation",dept:"SB Crew",time:10,people:"SB Crew"}),
-  S({icon:"📐",color:C.switchboard,label:"Schematics & Electrical Wiring",dept:"SB Elec",time:10,people:"SB Elec"}),
+function swSide(){return[
+  S({icon:"📐",color:C.switchboard,label:"Panel Design & Long-Lead Orders",dept:"Procurement",time:30,people:"Procurement",info:"Relays, switchgear — very long lead."}),
+  S({icon:"🔩",color:C.switchboard,label:"Mechanical Build (DBs/MSBs)",dept:"SB Crew",time:10,people:"SB Crew"}),
+  S({icon:"📐",color:C.switchboard,label:"Schematics & Wiring",dept:"SB Elec",time:10,people:"SB Elec"}),
   S({icon:"✅",color:C.switchboard,label:"Testing & FAT",dept:"SB Elec + QA",time:2,people:"SB + QA"}),
   S({icon:"🚚",color:C.switchboard,label:"Transport → Site",dept:"Transport",time:1,people:"Transport"}),
 ];}
 
-// ══════════════════════════════════════
-//  SEGMENT / DURATION
-// ══════════════════════════════════════
-function segment(list){
-  const blocks=[];let i=0;
-  while(i<list.length){
-    const s=list[i];
-    if(s.group){const items=[s];let j=i+1;while(j<list.length&&list[j].group===s.group){items.push(list[j]);j++;}blocks.push({type:"group",group:s.group,items});i=j;}
-    else{blocks.push({type:"seq",items:[s]});i++;}
+// ── O&M ──
+function omMain(){return[
+  S({icon:"📋",color:C.pm,label:"Scope & Work Order Review",dept:"PM",time:2,people:"1 PM"}),
+  S({icon:"🚗",color:C.neutral,label:"Mobilisation to Site",dept:"Field",time:1,people:"2 Tech"}),
+  S({icon:"🔒",color:C.qa,label:"Isolation & LOTO",dept:"Safety",time:1,people:"2 Tech",symbol:"🔒",info:"Lock-out / tag-out before any work."}),
+  S({icon:"🔍",color:C.blue,label:"Inspection & Condition Report",dept:"Field",time:2,people:"2 Tech"}),
+  S({icon:"🧰",color:C.mech,label:"Preventive Maintenance",dept:"Field",time:4,people:"3 Tech",group:"WORK",lane:"Mech"}),
+  S({icon:"⚡",color:C.electrical,label:"Electrical Servicing",dept:"Electrical",time:3,people:"2 Elec",group:"WORK",lane:"Elec"}),
+  S({icon:"🔧",color:C.fuel,label:"Component Replacement",dept:"Field",time:5,people:"3 Tech",panelMerge:true,info:"Waits on spares from side track."}),
+  S({icon:"✅",color:C.qa,label:"Functional Testing",dept:"QA",time:2,people:"2 Tech"}),
+  S({icon:"📝",color:C.pm,label:"Reinstate & De-isolate",dept:"Safety",time:1,people:"2 Tech"}),
+  S({icon:"🎉",color:C.pm,label:"Report & Handover",dept:"PM",time:2,people:"1 PM"}),
+];}
+function omSide(){return[
+  S({icon:"📦",color:C.switchboard,label:"Identify Spares Required",dept:"Procurement",time:2,people:"1 PM"}),
+  S({icon:"🛒",color:C.switchboard,label:"Order Parts (lead time)",dept:"Procurement",time:14,people:"Procurement",info:"Long-lead OEM parts."}),
+  S({icon:"📥",color:C.switchboard,label:"Receive & QA Parts",dept:"Stores",time:2,people:"Stores"}),
+];}
+
+// ── APU (Auxiliary Power Unit) ──
+function apuMain(){return[
+  S({icon:"📐",color:C.pm,label:"APU Design & Approval",dept:"Engineering",time:8,people:"Eng"}),
+  S({icon:"🔩",color:C.steel,label:"Skid Fabrication",dept:"Fabrication",time:10,people:"Fab Team"}),
+  S({icon:"🎨",color:C.paint,label:"Skid Paint & Coating",dept:"Paint",time:3,people:"Paint"}),
+  S({icon:"⚙️",color:C.mech,label:"Genset / Engine Install",dept:"Mechanical",time:6,people:"3 Mech",group:"FIT",lane:"Mech"}),
+  S({icon:"⛽",color:C.fuel,label:"Fuel System Install",dept:"Mechanical",time:4,people:"2 Mech",group:"FIT",lane:"Fuel"}),
+  S({icon:"⚡",color:C.electrical,label:"Power & Earthing Connection",dept:"Electrical",time:5,people:"3 Elec"}),
+  S({icon:"🎛️",color:C.qa,label:"Controls Integration",dept:"Controls",time:6,people:"2",panelMerge:true,info:"Needs control panel from side track."}),
+  S({icon:"✅",color:C.qa,label:"Load Bank Testing",dept:"QA",time:3,people:"3"}),
+  S({icon:"🎉",color:C.pm,label:"Commission & Handover",dept:"PM",time:3,people:"3"}),
+];}
+function apuSide(){return[
+  S({icon:"📐",color:C.switchboard,label:"Control Panel Design",dept:"Controls Eng",time:7,people:"Eng"}),
+  S({icon:"🔩",color:C.switchboard,label:"Panel Build & Wiring",dept:"Panel Shop",time:12,people:"Panel Crew"}),
+  S({icon:"✅",color:C.switchboard,label:"Panel FAT",dept:"QA",time:2,people:"QA"}),
+];}
+
+// ── KIOSK ──
+function kioskMain(){return[
+  S({icon:"📐",color:C.pm,label:"Kiosk Design & BOM",dept:"Engineering",time:5,people:"Eng"}),
+  S({icon:"🔩",color:C.steel,label:"Enclosure Fabrication",dept:"Fabrication",time:8,people:"Fab"}),
+  S({icon:"🎨",color:C.paint,label:"Paint & Finish",dept:"Paint",time:3,people:"Paint"}),
+  S({icon:"🗄️",color:C.electrical,label:"Equipment Install",dept:"Electrical",time:5,people:"2 Elec",panelMerge:true,info:"Needs switchgear from side track."}),
+  S({icon:"🔌",color:C.electrical,label:"Wiring & Terminations",dept:"Electrical",time:6,people:"2 Elec"}),
+  S({icon:"✅",color:C.qa,label:"Testing & FAT",dept:"QA",time:3,people:"2"}),
+  S({icon:"🚚",color:C.pad,label:"Transport to Site",dept:"Logistics",time:1,people:"2"}),
+  S({icon:"🏗️",color:C.construction,label:"Site Install & Connect",dept:"Field",time:3,people:"3"}),
+  S({icon:"🎉",color:C.pm,label:"Commission & Handover",dept:"PM",time:2,people:"2"}),
+];}
+function kioskSide(){return[
+  S({icon:"🔌",color:C.switchboard,label:"Switchgear Order (lead)",dept:"Procurement",time:20,people:"Procurement"}),
+  S({icon:"📥",color:C.switchboard,label:"Receive & Inspect",dept:"Stores",time:2,people:"Stores"}),
+];}
+
+// ═══════════════════════════════════════════════════════
+//  STATE   cloud.flows["template::project"] = {main, side}
+// ═══════════════════════════════════════════════════════
+let cloud={flows:{},history:[]};
+let stages=[],sb=[],hl={};
+let currentTemplate="switchroom",currentProject="Default";
+const keyOf=(t,p)=>`${t}::${p}`;
+
+function configured(){return BIN_ID&&!BIN_ID.startsWith("PASTE")&&API_KEY&&!API_KEY.startsWith("PASTE");}
+
+// ═══════════════════════════════════════════════════════
+//  STARTUP
+// ═══════════════════════════════════════════════════════
+async function start(){
+  renderTemplateSel(); renderLegend();
+  if(!configured()){
+    document.getElementById("setupBanner").style.display="block";
+    document.getElementById("setupBanner").innerHTML="⚠️ <b>Not connected to cloud yet.</b> You can switch layouts, edit and simulate — but Save needs BIN_ID + API_KEY (see chat). Showing built-in defaults.";
+    loadDefaultsIntoView(); refreshAll(); setSS("Offline — set up cloud to save");
+    return;
   }
-  return blocks;
+  await loadCloud();
 }
+
+async function loadCloud(){
+  setSS("Loading…");
+  try{
+    const r=await fetch(`${API}/latest`,{headers:HEADERS});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const data=await r.json();
+    cloud=(data&&data.flows)?data:{flows:{},history:[]};
+    loadCurrentOrDefault(); refreshAll();
+    setSS(`Loaded ✓ ${new Date().toLocaleTimeString("en-AU")}`);
+  }catch(e){
+    console.error(e); loadDefaultsIntoView(); refreshAll();
+    setSS("Load failed — check BIN_ID/API_KEY. Using defaults.");
+    toast("Couldn't reach cloud: "+e.message,"error");
+  }
+}
+
+function loadDefaultsIntoView(){const t=TEMPLATES[currentTemplate];stages=t.main();sb=t.side();}
+function loadCurrentOrDefault(){
+  const k=keyOf(currentTemplate,currentProject);
+  if(cloud.flows[k]){stages=cloud.flows[k].main||TEMPLATES[currentTemplate].main();sb=cloud.flows[k].side||TEMPLATES[currentTemplate].side();}
+  else loadDefaultsIntoView();
+}
+
+async function saveFlow(){
+  if(!configured()){toast("Set up cloud first (BIN_ID + API_KEY)","error");return;}
+  setSS("Saving…");
+  const k=keyOf(currentTemplate,currentProject);
+  cloud.flows[k]={main:stages,side:sb};
+  cloud.history=cloud.history||[];
+  cloud.history.unshift({title:`${TEMPLATES[currentTemplate].label} · ${currentProject} — ${new Date().toLocaleString("en-AU")}`,tkey:k,main:JSON.parse(JSON.stringify(stages)),side:JSON.parse(JSON.stringify(sb))});
+  cloud.history=cloud.history.slice(0,60);
+  try{
+    const r=await fetch(API,{method:"PUT",headers:HEADERS,body:JSON.stringify(cloud)});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    setSS(`Saved ✓ ${new Date().toLocaleTimeString("en-AU")}`);
+    toast("Saved to shared cloud ✅ — everyone sees this");
+  }catch(e){setSS("Save failed ✗");toast("Save failed: "+e.message,"error");console.error(e);}
+}
+
+// ═══════════════════════════════════════════════════════
+//  SELECTORS
+// ═══════════════════════════════════════════════════════
+function renderTemplateSel(){
+  document.getElementById("templateSel").innerHTML=Object.entries(TEMPLATES).map(([k,t])=>`<option value="${k}" ${k===currentTemplate?"selected":""}>${t.label}</option>`).join("");
+}
+function renderProjectSel(){
+  const prefix=currentTemplate+"::";
+  let names=Object.keys(cloud.flows).filter(k=>k.startsWith(prefix)).map(k=>k.slice(prefix.length));
+  if(!names.includes("Default")) names.unshift("Default");
+  names=[...new Set(names)];
+  document.getElementById("projectSel").innerHTML=names.map(p=>`<option value="${p}" ${p===currentProject?"selected":""}>${p}</option>`).join("");
+}
+function switchTemplate(){currentTemplate=document.getElementById("templateSel").value;currentProject="Default";loadCurrentOrDefault();refreshAll();}
+function switchProject(){currentProject=document.getElementById("projectSel").value;loadCurrentOrDefault();refreshAll();}
+async function newProject(){const n=prompt("New project name (within "+TEMPLATES[currentTemplate].label+"):");if(!n?.trim())return;currentProject=n.trim();loadDefaultsIntoView();cloud.flows[keyOf(currentTemplate,currentProject)]={main:stages,side:sb};refreshAll();await saveFlow();}
+function setSS(t){document.getElementById("saveStatus").textContent=t;document.getElementById("saveStatus2").textContent=t;}
+
+function refreshAll(){
+  renderProjectSel();
+  document.getElementById("sideTitle").textContent=TEMPLATES[currentTemplate].sideTitle;
+  document.getElementById("connLabel").textContent=TEMPLATES[currentTemplate].mergeLabel;
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════════════════════
+function openHistory(){
+  const k=keyOf(currentTemplate,currentProject);
+  const items=(cloud.history||[]).filter(h=>h.tkey===k).slice(0,20);
+  let html=`<div class="modal-row"><h3>📜 History — ${TEMPLATES[currentTemplate].label} · ${currentProject}</h3><button class="xbtn" onclick="closeModal()">✕</button></div>`;
+  if(!items.length) html+='<p style="color:#888;font-size:12px">No snapshots yet. Click Save to create one.</p>';
+  else{window._hist=items;html+=items.map((it,i)=>`<div class="hist-item" onclick="restoreSnap(${i})"><div style="font-size:12px;font-weight:600;color:var(--navy)">${it.title}</div></div>`).join("");}
+  showModal(html);
+}
+function restoreSnap(i){if(!confirm("Restore this snapshot? Click Save afterwards to keep it."))return;const it=window._hist[i];stages=JSON.parse(JSON.stringify(it.main||[]));sb=JSON.parse(JSON.stringify(it.side||[]));closeModal();render();toast("Restored — click Save to keep.");}
+
+// ═══════════════════════════════════════════════════════
+//  SEGMENT / DURATION
+// ═══════════════════════════════════════════════════════
+function segment(list){const blocks=[];let i=0;while(i<list.length){const s=list[i];if(s.group){const items=[s];let j=i+1;while(j<list.length&&list[j].group===s.group){items.push(list[j]);j++;}blocks.push({type:"group",group:s.group,items});i=j;}else{blocks.push({type:"seq",items:[s]});i++;}}return blocks;}
 function laneSums(items){const m={},order=[];items.forEach(it=>{const k=it.lane||it.id;if(!(k in m)){m[k]=0;order.push(k);}m[k]+=it.handback?0:(+it.time||0);});return order.map(k=>({lane:k,sum:m[k],items:items.filter(it=>(it.lane||it.id)===k)}));}
 function blockDur(b){if(b.type==="seq")return b.items[0].handback?0:(+b.items[0].time||0);return Math.max(...laneSums(b.items).map(l=>l.sum),0);}
 function totalDays(list){return segment(list).reduce((a,b)=>a+blockDur(b),0);}
 
-// ══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  RENDER
-// ══════════════════════════════════════
-function render(){renderFlow("mainFlow",stages,"main");renderSB();document.getElementById("headerSub").textContent=`Project: ${currentProject}  ·  ${totalDays(stages)} work days`;}
+// ═══════════════════════════════════════════════════════
+function render(){
+  renderFlow("mainFlow",stages,"main");
+  renderSide();
+  document.getElementById("headerSub").textContent=`${TEMPLATES[currentTemplate].label} · ${currentProject}  ·  Main path ${totalDays(stages)}d · Side ${totalDays(sb)}d`;
+}
 function renderFlow(id,list,scope){const el=document.getElementById(id);el.innerHTML="";const blocks=segment(list);blocks.forEach((b,bi)=>{el.appendChild(renderBlock(b,list,scope));if(bi<blocks.length-1)el.appendChild(mkArrow());});}
+function renderSide(){const el=document.getElementById("sideFlow");el.innerHTML="";sb.forEach((n,i)=>{el.appendChild(mkCard(n,sb,"side"));if(i<sb.length-1)el.appendChild(mkArrow());});}
 function renderBlock(b,list,scope){
   if(b.type==="seq")return mkCard(b.items[0],list,scope);
   const div=document.createElement("div");div.className="par-block";div.style.cssText=`border:2px solid ${b.items[0].color}44;background:${b.items[0].color}08`;
@@ -460,12 +382,12 @@ function mkCard(node,list,scope){
   const border=hl[node.id]?HL:node.nonValue?"#c62828":node.handback?"#2E7D32":(node.color||C.neutral);
   const bg=hl[node.id]?"#FFF8E1":node.nonValue?"#FFEBEE":node.handback?"#E8F5E9":"#fff";
   const idx=list.findIndex(s=>s.id===node.id);
-  const d=document.createElement("div");d.className="card";d.style.cssText=`border:2px solid ${border};border-left:5px solid ${border};background:${bg}`;
+  const d=document.createElement("div");d.className="card"+(scope==="side"?" side":"");d.style.cssText=`border:2px solid ${border};border-left:5px solid ${border};background:${bg}`;
   d.innerHTML=`<div style="display:flex;align-items:flex-start;gap:5px"><span style="font-size:17px;line-height:1">${node.icon||"⚙️"}</span><div style="flex:1;min-width:0"><div class="card-title" style="color:${border}">${node.label}${node.symbol?` ${node.symbol}`:""}</div></div></div>
     ${!node.handback?`<div class="card-meta"><span class="pill">⏱ ${node.time}d</span>${node.people&&node.people!=="—"?`<span class="pill">👷 ${node.people}</span>`:""}<span style="color:#aaa">🏢 ${node.dept||""}</span></div>`:""}
     ${node.info?`<div class="card-info">${node.info}</div>`:""}
     ${node.nonValue?`<div class="card-nv">🔴 Non-Added Value</div>`:""}
-    ${node.panelMerge?`<div style="font-size:8px;color:var(--teal);margin-top:2px;font-weight:700">← Switchboards merge here</div>`:""}
+    ${node.panelMerge?`<div style="font-size:8px;color:var(--teal);margin-top:2px;font-weight:700">◀ Side track merges here</div>`:""}
     ${node.note?`<div class="card-note">📝 ${node.note}</div>`:""}
     <div class="card-btns">
       <button class="mini" style="background:${border}22;color:${border}" onclick="editStep('${node.id}','${scope}')">✏️</button>
@@ -479,18 +401,17 @@ function mkCard(node,list,scope){
     </div>`;
   return d;
 }
-function renderSB(){const el=document.getElementById("sbtrack-cards");el.innerHTML="";sb.forEach((n,i)=>{el.appendChild(mkCard(n,sb,"sb"));if(i<sb.length-1){const h=document.createElement("span");h.className="harrow";h.textContent="▶";el.appendChild(h);}});}
 function mkArrow(){const d=document.createElement("div");d.className="varrow";d.innerHTML=`<div class="varrow-line"></div><span class="varrow-head">▼</span>`;return d;}
 function renderLegend(){document.getElementById("legend").innerHTML=CL.map(([k,c])=>`<span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:${c};border-radius:2px"></span>${k}</span>`).join("")+`<span style="display:flex;align-items:center;gap:3px;margin-left:8px"><span style="width:10px;height:10px;background:#FFF3E0;border:2px solid ${HL};border-radius:2px"></span>Flagged</span>`;}
 
-// ══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  STEP ACTIONS
-// ══════════════════════════════════════
-const getList=scope=>scope==="sb"?sb:stages;
-const setList=(scope,arr)=>scope==="sb"?sb=arr:stages=arr;
+// ═══════════════════════════════════════════════════════
+const getList=scope=>scope==="side"?sb:stages;
+const setList=(scope,arr)=>scope==="side"?sb=arr:stages=arr;
 function toggleHL(id){hl[id]=!hl[id];render();}
 function addStep(scope,afterId){
-  const base=scope==="sb"?S({icon:"🔲",color:C.switchboard,label:"New SB Step",time:1}):S({label:"New Step",time:1});
+  const base=scope==="side"?S({icon:"🔲",color:C.switchboard,label:"New Side Step",time:1}):S({label:"New Step",time:1});
   const list=[...getList(scope)];
   if(!afterId||afterId==="null")list.push(base);
   else{const i=list.findIndex(x=>x.id===afterId);list.splice(i+1,0,base);}
@@ -498,11 +419,11 @@ function addStep(scope,afterId){
 }
 function delStep(id,scope){if(!confirm("Delete?"))return;setList(scope,getList(scope).filter(x=>x.id!==id));render();}
 function moveStep(id,scope,dir){const list=[...getList(scope)];const i=list.findIndex(x=>x.id===id);if(i<0)return;const t=i+dir;if(t<0||t>=list.length)return;[list[i],list[t]]=[list[t],list[i]];setList(scope,list);render();}
-function confirmReset(){if(!confirm("Reset to default?"))return;stages=defaultStages();sb=defaultSB();render();}
+function confirmReset(){if(!confirm("Reset THIS layout to its built-in default?"))return;loadDefaultsIntoView();render();toast("Reset — click Save to keep.");}
 
-// ══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  EDIT MODAL
-// ══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function editStep(id,scope){
   const node=getList(scope).find(x=>x.id===id);if(!node)return;
   showModal(`<div class="modal-row"><h3 style="color:${node.color}">✏️ Edit Step</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
@@ -510,13 +431,14 @@ function editStep(id,scope){
     <input type="${k==="time"?"number":"text"}" id="ef_${k}" value="${node[k]||""}" min="0"/></div>`).join("")}
     <div class="field"><label>Info</label><textarea id="ef_info" rows="2">${node.info||""}</textarea></div>
     <div class="field"><label>Note (yellow)</label><textarea id="ef_note" rows="2">${node.note||""}</textarea></div>
-    <div class="seq-box"><div class="seq-title">🔀 Sequencing</div>
+    <div class="seq-box"><div class="seq-title">🔀 Sequencing (main flow only)</div>
       <div class="field"><label>Parallel group (blank = sequential)</label><input id="ef_group" value="${node.group||""}"/></div>
       <div class="field"><label>Lane (within group)</label><input id="ef_lane" value="${node.lane||""}"/></div>
     </div>
     <div class="chk-row">
-      <label class="chk-label"><input type="checkbox" id="ef_hb" ${node.handback?"checked":""}> Handback marker</label>
+      <label class="chk-label"><input type="checkbox" id="ef_hb" ${node.handback?"checked":""}> Handback (0 day)</label>
       <label class="chk-label"><input type="checkbox" id="ef_nv" ${node.nonValue?"checked":""}> Non-added-value</label>
+      <label class="chk-label"><input type="checkbox" id="ef_pm" ${node.panelMerge?"checked":""}> Side merges here</label>
     </div>
     <div class="field"><label>Symbol</label><div style="display:flex;flex-wrap:wrap;gap:6px">${SYMS.map(s=>`<span class="sym ${node.symbol===s?"active":""}" onclick="pickSym(this,'${s}')">${s||"✖"}</span>`).join("")}</div></div>
     <div class="field"><label>Colour</label><div style="display:flex;flex-wrap:wrap;gap:6px">${CL.map(([k,c])=>`<div class="col-swatch ${node.color===c?"active":""}" style="background:${c}" title="${k}" onclick="pickCol(this,'${c}')"></div>`).join("")}</div></div>
@@ -531,44 +453,48 @@ function pickCol(el,c){document.querySelectorAll(".col-swatch").forEach(x=>x.cla
 function saveEdit(id,scope){
   const list=[...getList(scope)];const i=list.findIndex(x=>x.id===id);if(i<0)return;
   const v=k=>{const e=document.getElementById(k);return e?e.value.trim():"";};
-  list[i]={...list[i],label:v("ef_label"),dept:v("ef_dept"),icon:v("ef_icon"),time:Math.max(0,parseInt(v("ef_time"))||0),people:v("ef_people"),info:v("ef_info"),note:v("ef_note"),group:v("ef_group"),lane:v("ef_lane"),handback:document.getElementById("ef_hb").checked,nonValue:document.getElementById("ef_nv").checked,color:window._ec,symbol:window._es};
+  list[i]={...list[i],label:v("ef_label"),dept:v("ef_dept"),icon:v("ef_icon"),time:Math.max(0,parseInt(v("ef_time"))||0),people:v("ef_people"),info:v("ef_info"),note:v("ef_note"),group:v("ef_group"),lane:v("ef_lane"),handback:document.getElementById("ef_hb").checked,nonValue:document.getElementById("ef_nv").checked,panelMerge:document.getElementById("ef_pm").checked,color:window._ec,symbol:window._es};
   setList(scope,list);closeModal();render();
 }
 
-// ══════════════════════════════════════
-//  SIMULATOR
-// ══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  SIMULATOR — adapts to whatever main+side flow is loaded
+// ═══════════════════════════════════════════════════════
 const HOL={"2025-01-01":1,"2025-01-27":1,"2025-03-10":1,"2025-04-18":1,"2025-04-19":1,"2025-04-21":1,"2025-04-25":1,"2025-06-09":1,"2025-10-06":1,"2025-12-25":1,"2025-12-26":1,"2026-01-01":1,"2026-01-26":1,"2026-03-09":1,"2026-04-03":1,"2026-04-04":1,"2026-04-06":1,"2026-04-25":1,"2026-06-08":1,"2026-10-05":1,"2026-12-25":1,"2026-12-28":1};
 function isoL(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
 function isWD(d,h){const g=d.getDay();if(g===0||g===6)return false;if(h&&HOL[isoL(d)])return false;return true;}
 function openSim(){
-  const total=totalDays(stages);const sbTotal=sb.reduce((a,s)=>a+(s.handback?0:(+s.time||0)),0);
+  const total=totalDays(stages);const sideTotal=totalDays(sb);
   const blocks=segment(stages);let ps=0;for(const b of blocks){if(b.items.some(it=>it.panelMerge))break;ps+=blockDur(b);}
-  const sbLate=sbTotal-ps;const nv=stages.filter(s=>s.nonValue).reduce((a,s)=>a+(+s.time||0),0);
+  const sideLate=sideTotal-ps;const nv=stages.filter(s=>s.nonValue).reduce((a,s)=>a+(+s.time||0),0);
   let acc=0;const rows=segment(stages).map(b=>{const d=blockDur(b);const s=acc;acc+=d;return{label:b.type==="seq"?b.items[0].label:`${b.group} ‖ ${laneSums(b.items).map(l=>l.lane).join("/")}`,d,s,col:b.items[0].color,nv:b.items.some(it=>it.nonValue)};}).filter(r=>r.d>0);
-  showModal(`<div class="modal-row"><h3 style="color:var(--navy)">🧮 Simulator</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
+  showModal(`<div class="modal-row"><h3 style="color:var(--navy)">🧮 Simulator — ${TEMPLATES[currentTemplate].label} · ${currentProject}</h3><button class="xbtn" onclick="closeModal()">✕</button></div>
     <div class="field"><label>Start date</label><input type="date" id="simS" value="${new Date().toISOString().split('T')[0]}" oninput="updSim(${total})"/></div>
     <label class="chk-label" style="margin-bottom:10px"><input type="checkbox" id="simH" checked onchange="updSim(${total})"> Exclude SA public holidays</label>
     <div class="stat-grid">
-      <div class="stat" style="background:#E8EAF6"><div style="font-size:9px;font-weight:600;color:var(--navy)">⏱ Work Days</div><div style="font-size:18px;font-weight:700;color:var(--navy)">${total}d</div></div>
+      <div class="stat" style="background:#E8EAF6"><div style="font-size:9px;font-weight:600;color:var(--navy)">⏱ Main Path</div><div style="font-size:18px;font-weight:700;color:var(--navy)">${total}d</div></div>
       <div class="stat" style="background:#E8F5E9"><div style="font-size:9px;font-weight:600;color:var(--green)">🏁 Finish</div><div style="font-size:18px;font-weight:700;color:var(--green)" id="simFin">—</div></div>
       <div class="stat" style="background:#FFEBEE"><div style="font-size:9px;font-weight:600;color:var(--red)">🔴 Non-Value</div><div style="font-size:18px;font-weight:700;color:var(--red)">${nv}d</div></div>
     </div>
-    <div style="border-radius:9px;padding:9px;margin-bottom:12px;font-size:11px;background:${sbLate>0?"#FFEBEE":"#E8F5E9"};border:1px solid ${sbLate>0?"#ef9a9a":"#a5d6a7"};color:${sbLate>0?"#b71c1c":"#1b5e20"}">
-      🔲 SB: ${sbTotal}d · Panel install: day ${ps} · ${sbLate>0?`⚠️ ${sbLate}d short`:`✅ ${-sbLate}d spare`}
+    <div style="border-radius:9px;padding:9px;margin-bottom:12px;font-size:11px;background:${sideLate>0?"#FFEBEE":"#E8F5E9"};border:1px solid ${sideLate>0?"#ef9a9a":"#a5d6a7"};color:${sideLate>0?"#b71c1c":"#1b5e20"}">
+      ${TEMPLATES[currentTemplate].sideTitle}: <b>${sideTotal}d</b> · merges at main-flow day ${ps} · ${sideLate>0?`⚠️ <b>${sideLate}d short</b> — start the side track earlier`:`✅ <b>${-sideLate}d to spare</b>`}
     </div>
+    <div style="font-weight:700;font-size:12px;margin-bottom:6px">📊 Critical-Path Gantt</div>
     <div style="max-height:240px;overflow-y:auto">${rows.map(t=>`<div class="gantt-row"><div class="gantt-label">${t.nv?"🔴 ":""}${t.label}</div><div class="gantt-bg"><div class="gantt-bar" style="left:${(t.s/total*100).toFixed(1)}%;width:${Math.max(t.d/total*100,.6).toFixed(1)}%;background:${t.col}"></div></div><div style="font-size:9px;color:#555;min-width:26px;text-align:right">${t.d}d</div></div>`).join("")}</div>`,true,true);
   setTimeout(()=>updSim(total),50);
 }
 function updSim(total){const sv=document.getElementById("simS")?.value;if(!sv)return;const h=document.getElementById("simH")?.checked;let d=new Date(sv+"T00:00:00");while(!isWD(d,h))d.setDate(d.getDate()+1);let n=1;while(n<total){d.setDate(d.getDate()+1);if(isWD(d,h))n++;}const el=document.getElementById("simFin");if(el)el.textContent=d.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});}
 
-// ══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  MODAL & TOAST
-// ══════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function showModal(html,cls=true,wide=false){document.getElementById("modalRoot").innerHTML=`<div class="overlay" ${cls?'onclick="closeModal()"':''}><div class="modal" style="${wide?"width:min(96vw,780px)":""}" onclick="event.stopPropagation()">${html}</div></div>`;}
 function closeModal(){document.getElementById("modalRoot").innerHTML="";}
 let _tt;
 function toast(msg,type="ok"){const el=document.getElementById("toast");el.textContent=msg;el.style.background=type==="error"?"#c62828":type==="info"?"#1565C0":"#323232";el.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove("show"),3500);}
+
+// GO
+start();
 </script>
 </body>
 </html>
